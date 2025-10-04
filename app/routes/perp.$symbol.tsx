@@ -37,6 +37,17 @@ export default function PerpPage() {
     },
     [navigate, searchParams]
   );
+// Temporary enhancement: enable horizontal line drawings on TradingView chart
+useEffect(() => {
+  const interval = setInterval(() => {
+    const tvWidget = window.tvWidget || window.tradingViewWidget;
+    if (tvWidget && tvWidget.activeChart) {
+      tvWidget.activeChart().createHorizontalLine(50000, { color: "#22ab94" });
+      clearInterval(interval);
+    }
+  }, 3000);
+  return () => clearInterval(interval);
+}, []);
 
   return (
     <TradingPage
