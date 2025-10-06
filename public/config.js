@@ -12,7 +12,7 @@ window.__RUNTIME_CONFIG__ = {
   "VITE_ENABLE_ABSTRACT_WALLET": "false",
   "VITE_DISABLE_EVM_WALLETS": "false",
   "VITE_DISABLE_SOLANA_WALLETS": "false",
-  "VITE_WALLETCONNECT_PROJECT_ID": "",
+  "VITE_WALLETCONNECT_PROJECT_ID": "4aeb8a728eaff5b516f18cb3275c84d1",
   "VITE_APP_NAME": "Platinum DEX",
   "VITE_APP_DESCRIPTION": "A cutting-edge and powerful decentralized exchange",
   "VITE_HAS_PRIMARY_LOGO": "true",
