@@ -13,7 +13,7 @@ export default function VaultsLayout() {
         ...config.scaffold.mainNavProps,
         initialMenu: "/vaults",
       }}
-      footerProps={config.scaffold.footerProps}
+      // footerProps={config.scaffold.footerProps}
       routerAdapter={{
         onRouteChange,
       }}

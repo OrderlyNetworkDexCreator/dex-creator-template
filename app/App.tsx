@@ -3,10 +3,13 @@ import { Helmet } from "react-helmet-async";
 import OrderlyProvider from "@/components/orderlyProvider";
 import { withBasePath } from "./utils/base-path";
 import { getSEOConfig, getUserLanguage } from "./utils/seo";
+import SymbolMarquee from "./components/SymbolMarquee";
+import { useScreen } from "@orderly.network/ui";
 
 export default function App() {
   const seoConfig = getSEOConfig();
   const defaultLanguage = getUserLanguage();
+  const { isMobile } = useScreen();
   
   return (
     <>
@@ -17,6 +20,7 @@ export default function App() {
         <link rel="icon" type="image/webp" href={withBasePath("/favicon.webp")} />
       </Helmet>
       <OrderlyProvider>
+        {!isMobile && <SymbolMarquee />}
         <Outlet />
       </OrderlyProvider>
     </>

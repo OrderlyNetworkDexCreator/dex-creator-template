@@ -15,6 +15,7 @@ export default function PerpSymbol() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+
   useEffect(() => {
     updateSymbol(symbol);
   }, [symbol]);
@@ -43,6 +44,7 @@ export default function PerpSymbol() {
         onSymbolChange={onSymbolChange}
         tradingViewConfig={config.tradingPage.tradingViewConfig}
         sharePnLConfig={config.tradingPage.sharePnLConfig}
+      
       />
     </>
   );
