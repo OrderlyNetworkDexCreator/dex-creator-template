@@ -1,5 +1,6 @@
 :root {
-  --oui-font-family: 'Manrope', sans-serif;
+  --oui-font-family: 'Montserrat', sans-serif;
+  --oui-font-size-base: 16px;
 
   /* colors */
   --oui-color-primary: 176 132 233;
@@ -91,4 +92,9 @@
   --oui-spacing-md: 26.25rem;
   --oui-spacing-lg: 30rem;
   --oui-spacing-xl: 33.75rem;
+}
+
+html, body {
+  font-family: 'Montserrat', sans-serif !important;
+  font-size: 16px !important;
 }
