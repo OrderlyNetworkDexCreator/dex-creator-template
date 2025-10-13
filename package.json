@@ -8,7 +8,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "build": "tsx scripts/generate-manifest.ts && NODE_OPTIONS='--max-old-space-size=8192' vite build && tsx scripts/generate-manifest.ts",
+    "build": "tsx scripts/generate-manifest.ts && vite build && tsx scripts/generate-manifest.ts",
     "build:spa": "tsx scripts/generate-manifest.ts && NODE_OPTIONS='--max-old-space-size=8192' tsx build.ts && tsx scripts/generate-manifest.ts",
     "dev": "tsx scripts/generate-manifest.ts && vite",
     "generate:manifest": "tsx scripts/generate-manifest.ts",

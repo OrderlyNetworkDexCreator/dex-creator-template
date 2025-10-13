@@ -59,7 +59,7 @@ async function clearDirectory(dir: string) {
 }
 
 async function main() {
-  const buildDir = "./build/client";
+  const buildDir = "./dist";
 
   // Get the base path from environment variable or default to '/'
   const basePath = process.env.PUBLIC_PATH || "/";
