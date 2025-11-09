@@ -40,7 +40,7 @@ function htmlTitlePlugin(): Plugin {
 }
 
 export default defineConfig(() => {
-  const basePath = process.env.PUBLIC_PATH || "/";
+  const basePath = process.env.PUBLIC_PATH || "/doge-dex/";
 
   return {
     base: basePath,
@@ -56,7 +56,7 @@ export default defineConfig(() => {
       }),
     ],
     build: {
-      outDir: "build/client",
+      outDir: "dist",
     },
     optimizeDeps: {
       include: ["react", "react-dom", "react-router-dom"],
