@@ -7,7 +7,7 @@ This template provides a quick way to set up a customized trading UI for Orderly
 ## Quick Start
 
 1. **Fork the Repository**
-
+   
    Fork this repository to your GitHub account to create your broker's UI.
 
 2. **Clone Your Fork**
@@ -60,7 +60,6 @@ Edit `app/utils/config.tsx` to customize your UI:
 - **PnL Sharing**: Customize the PnL poster backgrounds and colors in `sharePnLConfig`
 
 Required assets:
-
 - Place your logos in the `public` directory:
   - Main logo: `public/orderly-logo.svg`
   - Secondary logo: `public/orderly-logo-secondary.svg`
@@ -90,12 +89,13 @@ yarn build
    - For subsequent deployments, use `vercel --prod` to deploy to production
 
 For custom domain setup:
-
-- Navigate to the "Domains" section
-- Add and configure your custom domain
+   - Go to your project settings in Vercel dashboard
+   - Navigate to the "Domains" section
+   - Add and configure your custom domain
 
 ## Additional Resources
 
 - [Orderly JS SDK Documentation](https://github.com/OrderlyNetwork/js-sdk)
 - [Orderly Network Documentation](https://orderly.network/docs/sdks)
 - [Storybook Theme Editor](https://storybook.orderly.network/?path=/story/package-trading-tradingpage--page)
+
