@@ -1,0 +1,219 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  check-prerequisites:
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.check_merge.outputs.should_skip }}
+    steps:
+      - name: Check if triggered by merge commit
+        id: check_merge
+        uses: actions/github-script@v7
+        with:
+          script: |
+            if (context.eventName !== 'push') {
+              core.setOutput('should_skip', 'false');
+              return;
+            }
+            const commit = await github.rest.repos.getCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha
+            });
+            const isMerge = commit.data.parents.length > 1;
+            if (isMerge) {
+              console.log('Triggered by merge commit, skipping workflow to prevent loop');
+              core.setOutput('should_skip', 'true');
+            } else {
+              core.setOutput('should_skip', 'false');
+            }
+
+  build-and-deploy:
+    needs: check-prerequisites
+    if: needs.check-prerequisites.outputs.should_skip != 'true'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if fork
+        id: check_fork
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const repo = await github.rest.repos.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            return repo.data.fork;
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.TEMPLATE_PAT }}
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
+
+      - name: Sync with upstream
+        id: sync_fork
+        if: steps.check_fork.outputs.result == 'true'
+        run: |
+          echo "sync_happened=false" >> $GITHUB_OUTPUT
+          git remote add upstream https://github.com/OrderlyNetworkDexCreator/dex-creator-template.git || true
+          git fetch upstream
+          
+          BEFORE_MERGE=$(git rev-parse HEAD)
+          
+          if git merge upstream/main --no-edit; then
+            AFTER_MERGE=$(git rev-parse HEAD)
+            
+            if [ "$BEFORE_MERGE" != "$AFTER_MERGE" ]; then
+              echo "Successfully merged upstream changes"
+              echo "sync_happened=true" >> $GITHUB_OUTPUT
+              git push origin main
+            else
+              echo "Already up to date with upstream"
+            fi
+          else
+            echo "Merge failed"
+            git merge --abort 2>/dev/null || true
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+          cache-dependency-path: |
+            yarn.lock
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.yarn/cache
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Check if only config changed
+        id: check-changes
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "needs_build=true" >> $GITHUB_OUTPUT
+            echo "Manual trigger detected - forcing full build"
+          elif [ "${{ steps.sync_fork.outputs.sync_happened }}" = "true" ]; then
+            echo "needs_build=true" >> $GITHUB_OUTPUT
+            echo "Fork sync happened - forcing full build"
+          elif git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -q -v "^public/config\.js$"; then
+            echo "needs_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "needs_build=false" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Extract repository name
+        run: echo "REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)" >> $GITHUB_ENV
+
+      - name: Check for custom domain
+        id: check-custom-domain
+        run: |
+          if [ -f "CNAME" ]; then
+            echo "has_custom_domain=true" >> $GITHUB_OUTPUT
+            echo "Found custom domain: $(cat CNAME)"
+          else
+            echo "has_custom_domain=false" >> $GITHUB_OUTPUT
+            echo "No custom domain configured"
+          fi
+
+      - name: Restore previous build (if only config changed)
+        if: steps.check-changes.outputs.needs_build == 'false'
+        uses: actions/cache/restore@v4
+        with:
+          path: ./build
+          key: ${{ runner.os }}-build-${{ github.repository }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ github.repository }}
+        continue-on-error: true
+
+      - name: Check if build directory exists
+        if: steps.check-changes.outputs.needs_build == 'false'
+        run: |
+          if [ -d "./build" ] && [ "$(ls -A ./build)" ]; then
+            echo "Build directory found with content"
+          else
+            echo "needs_build=true" >> $GITHUB_OUTPUT
+            echo "Build directory empty or missing, forcing full build"
+          fi
+        id: force-build
+
+      - name: Install dependencies
+        if: steps.check-changes.outputs.needs_build == 'true' || steps.force-build.outputs.needs_build == 'true'
+        run: yarn install --frozen-lockfile --prefer-offline
+
+      - name: Build with repository base path
+        if: ${{ steps.check-custom-domain.outputs.has_custom_domain == 'false' && (steps.check-changes.outputs.needs_build == 'true' || steps.force-build.outputs.needs_build == 'true') }}
+        run: yarn build:spa
+        env:
+          # Set the base path for GitHub Pages using repo name
+          PUBLIC_PATH: /${{ env.REPO_NAME }}/
+          # Also set it as VITE environment variables
+          VITE_PUBLIC_PATH: /${{ env.REPO_NAME }}/
+          VITE_BASE_URL: /${{ env.REPO_NAME }}
+
+      - name: Build with root base path (for custom domain)
+        if: ${{ steps.check-custom-domain.outputs.has_custom_domain == 'true' && (steps.check-changes.outputs.needs_build == 'true' || steps.force-build.outputs.needs_build == 'true') }}
+        run: yarn build:spa
+        env:
+          # For custom domains, use root path
+          PUBLIC_PATH: /
+          VITE_PUBLIC_PATH: /
+          VITE_BASE_URL: ""
+
+      - name: Copy updated config to build (if using cached build)
+        if: steps.check-changes.outputs.needs_build == 'false' && steps.force-build.outputs.needs_build != 'true'
+        run: |
+          cp public/config.js ./build/client/config.js
+          echo "✅ Updated config.js copied to build output"
+
+      - name: Cache build artifacts
+        if: steps.check-changes.outputs.needs_build == 'true' || steps.force-build.outputs.needs_build == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ./build
+          key: ${{ runner.os }}-build-${{ github.repository }}-${{ github.sha }}
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        with:
+          token: ${{ secrets.TEMPLATE_PAT }}
+          enablement: true
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "./build/client"
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
