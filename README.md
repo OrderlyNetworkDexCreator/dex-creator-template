@@ -1,8 +1,6 @@
 # Orderly Broker UI Template
 
-This template provides a quick way to set up a customized trading UI for Orderly Network brokers, built with Remix and deployable on Vercel.
-
-🔗 [Live Demo](https://broker-template-seven.vercel.app/)
+This template provides a quick way to set up a customized trading UI for Orderly Network brokers, deployed automatically to GitHub Pages.
 
 ## Quick Start
 
@@ -76,22 +74,37 @@ yarn dev
 
 ## Deployment
 
-1. Build the application:
+This project deploys automatically to **GitHub Pages** via GitHub Actions whenever you push to the `main` branch. No manual build or upload step is needed.
 
-```sh
-yarn build
-```
+### How it works
 
-2. Deploy to Vercel:
-   - Create an account on [Vercel](https://vercel.com) if you haven't already
-   - Install Vercel CLI: `yarn global add vercel`
-   - Run `vercel` in your project directory and follow the prompts
-   - For subsequent deployments, use `vercel --prod` to deploy to production
+1. Push your changes to the `main` branch.
+2. The [Deploy to GitHub Pages](.github/workflows/deploy.yml) workflow runs automatically.
+3. It builds the app and publishes it to GitHub Pages.
 
-For custom domain setup:
-   - Go to your project settings in Vercel dashboard
-   - Navigate to the "Domains" section
-   - Add and configure your custom domain
+### Custom Domain Setup
+
+To serve the DEX from your own domain (e.g. `trade.yourdomain.com`):
+
+1. **Add a `CNAME` file** to the root of this repository containing your custom domain:
+
+   ```
+   trade.yourdomain.com
+   ```
+
+   > The file `CNAME` in this repo is already set to `trade.virgos.ai`.
+
+2. **Configure DNS** at your domain registrar — add a `CNAME` record:
+
+   | Field | Value |
+   |-------|-------|
+   | **Name** | `trade` |
+   | **Value** | `orderlynetworkdexcreator.github.io` |
+   | **TTL** | `3600` (or Automatic) |
+
+3. **Enable GitHub Pages** in the repository settings (Settings → Pages) and set the source to the `gh-pages` branch or the GitHub Actions deployment option.
+
+> ⚠️ **Do not add this domain to Vercel.** The site is hosted on GitHub Pages. Adding the domain to a different Vercel project (such as your main marketing site) will cause the wrong site to be served at that URL — which is the most common misconfiguration.
 
 ## Additional Resources
 
