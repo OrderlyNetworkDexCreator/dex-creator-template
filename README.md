@@ -99,10 +99,10 @@ To serve the DEX from your own domain (e.g. `trade.yourdomain.com`):
    | Field | Value |
    |-------|-------|
    | **Name** | `trade` |
-   | **Value** | `orderlynetworkdexcreator.github.io` |
+   | **Value** | `xsunn3.github.io` |
    | **TTL** | `3600` (or Automatic) |
 
-3. **Enable GitHub Pages** in the repository settings (Settings → Pages) and set the source to the `gh-pages` branch or the GitHub Actions deployment option.
+3. **Enable GitHub Pages** in the repository settings (Settings → Pages) and set the source to **GitHub Actions**.
 
 > ⚠️ **Do not add this domain to Vercel.** The site is hosted on GitHub Pages. Adding the domain to a different Vercel project (such as your main marketing site) will cause the wrong site to be served at that URL — which is the most common misconfiguration.
 
