@@ -36,8 +36,10 @@ jobs:
               ref: context.sha
             });
             const isMerge = commit.data.parents.length > 1;
-            if (isMerge) {
-              console.log('Triggered by merge commit, skipping workflow to prevent loop');
+            const message = commit.data.commit.message;
+            const isUpstreamSync = message.includes("Merge remote-tracking branch 'upstream/");
+            if (isMerge && isUpstreamSync) {
+              console.log('Triggered by upstream sync merge commit, skipping to prevent loop');
               core.setOutput('should_skip', 'true');
             } else {
               core.setOutput('should_skip', 'false');
@@ -65,7 +67,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.TEMPLATE_PAT }}
+          token: ${{ secrets.TEMPLATE_PAT || github.token }}
           fetch-depth: 0
 
       - name: Configure Git
@@ -206,7 +208,7 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
         with:
-          token: ${{ secrets.TEMPLATE_PAT }}
+          token: ${{ secrets.TEMPLATE_PAT || github.token }}
           enablement: true
 
       - name: Upload artifact
