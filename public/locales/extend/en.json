@@ -4,5 +4,47 @@
   "extend.affiliate.description": "Earn more as a Orderly affiliate",
   "extend.staking": "Staking",
   "extend.staking.description": "Stake ORDER/esORDER to acquire VALOR",
-  "extend.swap": "Swap"
+  "extend.swap": "Swap",
+
+  "common.long": "Up",
+  "common.short": "Down",
+  "common.pnl": "P/L",
+  "common.unrealizedPnl": "Unrealized P/L",
+  "common.realizedPnl": "Realized P/L",
+  "common.market": "Instant",
+  "common.marketPrice": "Instant",
+
+  "orderEntry.buyLong": "Buy / Up",
+  "orderEntry.sellShort": "Sell / Down",
+  "orderEntry.orderType.market": "Instant",
+  "orderEntry.orderType.marketOrder": "Instant",
+  "orderEntry.orderType.stopMarket": "Stop Instant",
+  "orderEntry.estLiqPrice": "Est. force-close price",
+  "orderEntry.estPnL": "Est. P/L",
+  "orderEntry.maxBuy": "Max up amount",
+  "orderEntry.maxSell": "Max down amount",
+
+  "positions.column.liqPrice": "Force-close price",
+  "positions.column.liqPrice.tooltip": "Estimated price at which your trade will be automatically closed. Prices are estimated and depend on multiple factors across all open trades.",
+  "positions.liquidation": "Force close",
+  "positions.marketClose": "Instant close",
+  "positions.history.type.liquidated": "Force closed",
+  "positions.history.column.netPnl": "Net P/L",
+  "positions.column.unrealPnl.priceBasis": "Unrealized P/L Price Basis",
+
+  "trading.portfolioSettings.decimalPrecision": "Decimal Precision for P/L & Notional",
+  "trading.portfolioSettings.unrealPnlPriceBasis": "Unrealized P/L Price Basis",
+  "trading.asset.unsettledPnl": "Unsettled P/L",
+
+  "tpsl.pnl": "P/L",
+  "tpsl.tpPnl": "TP P/L",
+  "tpsl.slPnl": "SL P/L",
+  "tpsl.estPnl": "Est. P/L",
+
+  "portfolio.overview.performance.pnl": "{{period}} P/L",
+  "portfolio.overview.performance.dailyPnl": "Daily P/L",
+  "portfolio.overview.performance.cumulativePnl": "Cumulative P/L",
+  "portfolio.overview.performance.roi.tooltip": "ROI = P/L / (Start account value + Total deposits + Total transfer-in)",
+  "portfolio.overview.performance.pnl.tooltip": "P/L = Current account value − Start account value − Total deposits + Total withdrawals − Total transfer-in + Total transfer-out"
 }
+
