@@ -236,11 +236,12 @@ jobs:
           if [ "$CNAME_TARGET" = "xsunn3.github.io" ]; then DNS_OK=true; fi
           if [ "$DNS_OK" = "true" ]; then
             echo "✅ DNS for ${DOMAIN} is correctly pointing to GitHub Pages"
+            echo "## ✅ DNS OK: ${DOMAIN} → GitHub Pages" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️  DNS WARNING: ${DOMAIN} does not appear to point to GitHub Pages."
             echo ""
-            echo "   To fix the ERR_CERT_COMMON_NAME_INVALID SSL error, add the following"
-            echo "   DNS record at your domain registrar:"
+            echo "   The DEX will NOT be reachable at ${DOMAIN} until DNS is configured."
+            echo "   Add the following record at your domain registrar:"
             echo ""
             echo "   Type : CNAME"
             echo "   Name : trade"
@@ -250,6 +251,24 @@ jobs:
             echo "   GitHub Pages can only provision an SSL certificate for ${DOMAIN}"
             echo "   once the DNS is pointed here. The deployment will continue, but"
             echo "   HTTPS will not work until DNS is updated."
+            echo "::warning::DNS for ${DOMAIN} is not pointing to GitHub Pages. Add a CNAME record: trade → xsunn3.github.io at your registrar. The DEX will not load until DNS is configured."
+            {
+              echo "## ⚠️ Action Required: DNS not configured for ${DOMAIN}"
+              echo ""
+              echo "The DEX at **${DOMAIN}** will not load until DNS is set up."
+              echo ""
+              echo "At your domain registrar, add this record:"
+              echo ""
+              echo "| Field | Value |"
+              echo "|-------|-------|"
+              echo "| Type  | CNAME |"
+              echo "| Name  | \`trade\` |"
+              echo "| Value | \`xsunn3.github.io\` |"
+              echo "| TTL   | 3600 (or Automatic) |"
+              echo ""
+              echo "DNS propagation can take up to 24 hours. After that, GitHub Pages will"
+              echo "automatically provision an SSL certificate for ${DOMAIN}."
+            } >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Setup Pages
@@ -315,35 +334,38 @@ jobs:
             const repo = context.repo.repo;
             const domain = '${{ steps.check-custom-domain.outputs.domain }}';
 
-            // Step 1: Ensure Pages source is set to gh-pages branch
+            // Step 1: Set Pages source to gh-pages branch AND custom domain in one call
             try {
               await github.rest.repos.updateInformationAboutPagesSite({
                 owner,
                 repo,
-                source: { branch: 'gh-pages', path: '/' }
-              });
-              console.log('✅ GitHub Pages source set to gh-pages branch');
-            } catch (error) {
-              core.warning(`Could not set Pages source: ${error.message}`);
-            }
-
-            // Step 2: Set the custom domain (without HTTPS enforcement first)
-            try {
-              await github.rest.repos.updateInformationAboutPagesSite({
-                owner,
-                repo,
+                source: { branch: 'gh-pages', path: '/' },
                 cname: domain
               });
-              console.log(`✅ GitHub Pages custom domain set to: ${domain}`);
+              console.log(`✅ GitHub Pages source set to gh-pages branch and custom domain set to: ${domain}`);
             } catch (error) {
-              core.warning(
-                `Could not set custom domain via API: ${error.message}\n` +
-                `ACTION REQUIRED: In GitHub → Settings → Pages:\n` +
-                `  Set "Custom domain" to: ${domain}`
-              );
+              // Some API versions don't accept source + cname together; fall back to separate calls
+              core.warning(`Combined source+cname update failed (${error.message}), trying separately...`);
+              try {
+                await github.rest.repos.updateInformationAboutPagesSite({ owner, repo, source: { branch: 'gh-pages', path: '/' } });
+                console.log('✅ GitHub Pages source set to gh-pages branch');
+              } catch (e) {
+                core.warning(`Could not set Pages source: ${e.message}`);
+              }
+              try {
+                await github.rest.repos.updateInformationAboutPagesSite({ owner, repo, cname: domain });
+                console.log(`✅ GitHub Pages custom domain set to: ${domain}`);
+              } catch (e) {
+                core.warning(
+                  `Could not set custom domain via API: ${e.message}\n` +
+                  `ACTION REQUIRED: In GitHub → Settings → Pages:\n` +
+                  `  1. Set "Custom domain" to: ${domain}\n` +
+                  `  2. Click Save`
+                );
+              }
             }
 
-            // Step 3: Attempt to enforce HTTPS (only succeeds once the SSL cert is provisioned)
+            // Step 2: Attempt to enforce HTTPS (only succeeds once the SSL cert is provisioned)
             try {
               await github.rest.repos.updateInformationAboutPagesSite({
                 owner,

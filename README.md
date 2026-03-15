@@ -102,7 +102,21 @@ To serve the DEX from your own domain (e.g. `trade.yourdomain.com`):
    | **Value** | `xsunn3.github.io` |
    | **TTL** | `3600` (or Automatic) |
 
-3. **Enable GitHub Pages** in the repository settings (Settings → Pages) and set the source to **GitHub Actions**.
+   > ⏱️ DNS changes can take up to 24 hours to propagate globally. The site will not be reachable at your custom domain until this record is in place and has propagated.
+
+3. **Enable GitHub Pages** in the repository settings:
+   - Go to **Settings → Pages**
+   - Under **Source**, select **Deploy from a branch**
+   - Set **Branch** to `gh-pages` and the folder to `/ (root)`
+   - Click **Save**
+
+   > The deploy workflow pushes built files to the `gh-pages` branch automatically on every push to `main`. No manual upload is needed after initial setup.
+
+4. **Set the Custom domain** in GitHub Pages settings:
+   - In **Settings → Pages → Custom domain**, enter `trade.virgos.ai`
+   - Click **Save**
+
+   > The deploy workflow also sets this automatically via the GitHub API on every successful deploy. If the custom domain field appears blank after a failed deploy, you can set it manually here, or push any change to `main` to re-trigger the workflow.
 
 > ⚠️ **Do not add this domain to Vercel.** The site is hosted on GitHub Pages. Adding the domain to a different Vercel project (such as your main marketing site) will cause the wrong site to be served at that URL — which is the most common misconfiguration.
 
