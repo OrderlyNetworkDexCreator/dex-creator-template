@@ -18,7 +18,7 @@ window.__RUNTIME_CONFIG__ = {
   "VITE_APP_DESCRIPTION": "Perp dex on base",
   "VITE_HAS_PRIMARY_LOGO": "true",
   "VITE_HAS_SECONDARY_LOGO": "true",
-  "VITE_ENABLED_MENUS": "Swap,Leaderboard,Vaults,Portfolio,Markets,Trading,Points,Rewards",
+  "VITE_ENABLED_MENUS": "Trading,Portfolio,Markets,Swap,Vaults,Points,Leaderboard,Rewards",
   "VITE_CUSTOM_MENUS": "",
   "VITE_ENABLE_SERVICE_DISCLAIMER_DIALOG": "false",
   "VITE_ENABLE_CAMPAIGNS": "false",
