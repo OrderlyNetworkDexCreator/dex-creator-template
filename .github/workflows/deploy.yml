@@ -49,9 +49,6 @@ jobs:
   build-and-deploy:
     needs: check-prerequisites
     if: needs.check-prerequisites.outputs.should_skip != 'true'
-    environment:
-      name: github-pages
-      url: ${{ steps.check-custom-domain.outputs.has_custom_domain == 'true' && format('https://{0}', steps.check-custom-domain.outputs.domain) || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
     runs-on: ubuntu-latest
     steps:
       - name: Check if fork
