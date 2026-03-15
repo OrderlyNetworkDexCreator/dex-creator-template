@@ -1,0 +1,151 @@
+name: Verify Custom Domain & SSL
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read CNAME
+        id: read-cname
+        run: |
+          if [ -f "CNAME" ]; then
+            DOMAIN=$(cat CNAME | tr -d '[:space:]')
+            echo "domain=${DOMAIN}" >> $GITHUB_OUTPUT
+            echo "has_domain=true" >> $GITHUB_OUTPUT
+            echo "Custom domain configured: ${DOMAIN}"
+          else
+            echo "has_domain=false" >> $GITHUB_OUTPUT
+            echo "No CNAME file found in repository"
+          fi
+
+      - name: Check DNS resolution
+        if: steps.read-cname.outputs.has_domain == 'true'
+        run: |
+          DOMAIN="${{ steps.read-cname.outputs.domain }}"
+          echo "=================================================="
+          echo " Domain Verification Report for: ${DOMAIN}"
+          echo "=================================================="
+          echo ""
+
+          # Check A and CNAME records
+          if command -v dig >/dev/null 2>&1; then
+            A_RECORDS=$(dig +short "${DOMAIN}" A 2>/dev/null)
+            CNAME_TARGET=$(dig +short "${DOMAIN}" CNAME 2>/dev/null | sed 's/\.$//')
+          else
+            A_RECORDS=$(nslookup "${DOMAIN}" 2>/dev/null | grep 'Address:' | tail -n +2 | awk '{print $2}')
+            CNAME_TARGET=""
+          fi
+
+          echo "A records for ${DOMAIN}:"
+          if [ -n "$A_RECORDS" ]; then
+            echo "$A_RECORDS"
+          else
+            echo "  (none)"
+          fi
+
+          echo ""
+          echo "CNAME record for ${DOMAIN}:"
+          if [ -n "$CNAME_TARGET" ]; then
+            echo "  ${CNAME_TARGET}"
+          else
+            echo "  (none)"
+          fi
+
+          # Evaluate DNS
+          GITHUB_PAGES_IPS="185.199.108.153 185.199.109.153 185.199.110.153 185.199.111.153"
+          DNS_OK=false
+
+          for ip in $A_RECORDS; do
+            for ghip in $GITHUB_PAGES_IPS; do
+              if [ "$ip" = "$ghip" ]; then DNS_OK=true; fi
+            done
+          done
+
+          if [ "$CNAME_TARGET" = "xsunn3.github.io" ]; then DNS_OK=true; fi
+
+          echo ""
+          echo "=================================================="
+          if [ "$DNS_OK" = "true" ]; then
+            echo "✅ DNS PASS: ${DOMAIN} is correctly pointing to GitHub Pages"
+          else
+            echo "❌ DNS FAIL: ${DOMAIN} is NOT pointing to GitHub Pages"
+            echo ""
+            echo "  This is why you see ERR_CERT_COMMON_NAME_INVALID."
+            echo "  GitHub Pages cannot provision an SSL certificate for"
+            echo "  ${DOMAIN} until its DNS points here."
+            echo ""
+            echo "  ── ACTION REQUIRED ─────────────────────────────"
+            echo "  At your domain registrar, add this DNS record:"
+            echo ""
+            echo "    Type : CNAME"
+            echo "    Name : trade"
+            echo "    Value: xsunn3.github.io"
+            echo "    TTL  : 3600 (or Automatic)"
+            echo ""
+            echo "  After adding the record, DNS propagation can take"
+            echo "  up to 24 hours. Once propagated, GitHub Pages will"
+            echo "  automatically provision an SSL certificate."
+            echo "  ─────────────────────────────────────────────────"
+            echo "=================================================="
+            exit 1
+          fi
+          echo "=================================================="
+
+      - name: Check GitHub Pages settings
+        if: steps.read-cname.outputs.has_domain == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.TEMPLATE_PAT || github.token }}
+          script: |
+            const domain = '${{ steps.read-cname.outputs.domain }}';
+            try {
+              const pages = await github.rest.repos.getPages({
+                owner: context.repo.owner,
+                repo: context.repo.repo
+              });
+              const data = pages.data;
+              console.log('');
+              console.log('GitHub Pages settings:');
+              console.log(`  URL           : ${data.html_url}`);
+              console.log(`  Custom domain : ${data.cname || '(not set)'}`);
+              console.log(`  HTTPS enforced: ${data.https_enforced}`);
+              console.log(`  HTTPS cert    : ${data.https_certificate ? data.https_certificate.state : 'unknown'}`);
+              console.log('');
+              if (!data.cname) {
+                console.log('⚠️  Custom domain is not set in GitHub Pages settings.');
+                console.log('   Run the Deploy workflow to set it automatically, or');
+                console.log('   set it manually under Settings → Pages → Custom domain.');
+              } else if (data.cname !== domain) {
+                console.log(`⚠️  Custom domain mismatch: Pages has "${data.cname}", CNAME file has "${domain}"`);
+              } else {
+                console.log(`✅ Custom domain "${domain}" is correctly set in GitHub Pages.`);
+              }
+              if (!data.https_enforced) {
+                console.log('⚠️  HTTPS enforcement is disabled. Run the Deploy workflow to enable it.');
+              } else {
+                console.log('✅ HTTPS enforcement is enabled.');
+              }
+              if (data.https_certificate && data.https_certificate.state !== 'approved') {
+                console.log(`⚠️  SSL certificate state: ${data.https_certificate.state}`);
+                console.log('   The certificate may still be provisioning. Check again in a few minutes.');
+                console.log('   If DNS is correct and the cert stays in error state, re-run the Deploy workflow.');
+              } else if (data.https_certificate && data.https_certificate.state === 'approved') {
+                console.log('✅ SSL certificate is approved and active.');
+              }
+            } catch (error) {
+              if (error.status === 404) {
+                console.log('❌ GitHub Pages is not enabled for this repository.');
+                console.log('   Go to Settings → Pages and set the source to "GitHub Actions".');
+              } else {
+                console.log(`Error: ${error.message}`);
+              }
+            }

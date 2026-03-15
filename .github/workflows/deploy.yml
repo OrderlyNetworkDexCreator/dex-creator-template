@@ -213,11 +213,50 @@ jobs:
           path: ./build
           key: ${{ runner.os }}-build-${{ github.repository }}-${{ github.sha }}
 
+      - name: Verify DNS configuration
+        if: steps.check-custom-domain.outputs.has_custom_domain == 'true'
+        run: |
+          DOMAIN="${{ steps.check-custom-domain.outputs.domain }}"
+          echo "Checking DNS for ${DOMAIN}..."
+          if command -v dig >/dev/null 2>&1; then
+            RESOLVED=$(dig +short "${DOMAIN}" A 2>/dev/null)
+            CNAME_TARGET=$(dig +short "${DOMAIN}" CNAME 2>/dev/null | sed 's/\.$//')
+          else
+            RESOLVED=$(nslookup "${DOMAIN}" 2>/dev/null | grep 'Address:' | tail -n +2 | awk '{print $2}')
+            CNAME_TARGET=""
+          fi
+          GITHUB_PAGES_IPS="185.199.108.153 185.199.109.153 185.199.110.153 185.199.111.153"
+          DNS_OK=false
+          for ip in $RESOLVED; do
+            for ghip in $GITHUB_PAGES_IPS; do
+              if [ "$ip" = "$ghip" ]; then DNS_OK=true; fi
+            done
+          done
+          if [ "$CNAME_TARGET" = "xsunn3.github.io" ]; then DNS_OK=true; fi
+          if [ "$DNS_OK" = "true" ]; then
+            echo "✅ DNS for ${DOMAIN} is correctly pointing to GitHub Pages"
+          else
+            echo "⚠️  DNS WARNING: ${DOMAIN} does not appear to point to GitHub Pages."
+            echo ""
+            echo "   To fix the ERR_CERT_COMMON_NAME_INVALID SSL error, add the following"
+            echo "   DNS record at your domain registrar:"
+            echo ""
+            echo "   Type : CNAME"
+            echo "   Name : trade"
+            echo "   Value: xsunn3.github.io"
+            echo "   TTL  : 3600 (or Automatic)"
+            echo ""
+            echo "   GitHub Pages can only provision an SSL certificate for ${DOMAIN}"
+            echo "   once the DNS is pointed here. The deployment will continue, but"
+            echo "   HTTPS will not work until DNS is updated."
+          fi
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
         with:
           token: ${{ secrets.TEMPLATE_PAT || github.token }}
           enablement: true
+          custom_domain: ${{ steps.check-custom-domain.outputs.has_custom_domain == 'true' && steps.check-custom-domain.outputs.domain || '' }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
