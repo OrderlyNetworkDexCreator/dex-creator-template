@@ -5,7 +5,7 @@ import {
   CrosshairMode,
   IChartApi,
   ISeriesApi,
-  CandlestickData,
+  LineData,
   UTCTimestamp,
 } from "lightweight-charts";
 
@@ -22,18 +22,19 @@ const INTERVALS = [
 
 type Interval = (typeof INTERVALS)[number]["value"];
 
-// ─── Theme colours (matches Virgos indigo theme) ─────────────────────────────
+// ─── Theme colours (black and white) ─────────────────────────────────────────
 const THEME = {
-  bg: "rgb(8,8,20)",
-  bgPanel: "rgb(12,12,26)",
-  grid: "rgba(64,68,108,0.25)",
-  text: "rgba(255,255,255,0.54)",
-  textMuted: "rgba(255,255,255,0.3)",
-  primary: "rgb(109,92,246)",
-  primaryFaint: "rgba(109,92,246,0.45)",
-  up: "rgb(22,197,94)",
-  down: "rgb(239,68,68)",
-  border: "rgba(64,68,108,0.35)",
+  bg: "rgb(0,0,0)",
+  bgPanel: "rgb(10,10,10)",
+  grid: "rgba(50,50,50,0.4)",
+  text: "rgba(255,255,255,0.7)",
+  textMuted: "rgba(255,255,255,0.35)",
+  primary: "rgb(255,255,255)",
+  primaryFaint: "rgba(255,255,255,0.3)",
+  primaryContrast: "rgb(0,0,0)",
+  spinnerBorder: "rgba(255,255,255,0.15)",
+  line: "rgb(255,255,255)",
+  border: "rgba(60,60,60,0.5)",
 };
 
 // ─── Symbol helpers ───────────────────────────────────────────────────────────
@@ -118,7 +119,7 @@ function getKrakenWsBase(): string {
 async function fetchKrakenCandles(
   krakenPair: string,
   minutes: number
-): Promise<CandlestickData[]> {
+): Promise<LineData[]> {
   const url = `https://api.kraken.com/0/public/OHLC?pair=${krakenPair}&interval=${minutes}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Kraken responded ${res.status}`);
@@ -133,10 +134,7 @@ async function fetchKrakenCandles(
   const rows: (string | number)[][] = json.result[dataKey];
   return rows.map((r) => ({
     time: Number(r[0]) as UTCTimestamp,
-    open: parseFloat(r[1] as string),
-    high: parseFloat(r[2] as string),
-    low: parseFloat(r[3] as string),
-    close: parseFloat(r[4] as string),
+    value: parseFloat(r[4] as string), // close price
   }));
 }
 
@@ -149,7 +147,7 @@ interface SimpleChartProps {
 export function SimpleChart({ symbol }: SimpleChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const seriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -203,13 +201,14 @@ export function SimpleChart({ symbol }: SimpleChartProps) {
       handleScale: true,
     });
 
-    const series = chart.addCandlestickSeries({
-      upColor: THEME.up,
-      downColor: THEME.down,
-      borderUpColor: THEME.up,
-      borderDownColor: THEME.down,
-      wickUpColor: THEME.up,
-      wickDownColor: THEME.down,
+    const series = chart.addLineSeries({
+      color: THEME.line,
+      lineWidth: 2,
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 4,
+      crosshairMarkerBorderColor: THEME.line,
+      crosshairMarkerBackgroundColor: THEME.line,
+      priceLineVisible: false,
     });
 
     chartRef.current = chart;
@@ -298,10 +297,7 @@ export function SimpleChart({ symbol }: SimpleChartProps) {
           const ohlc = msg[1];
           seriesRef.current?.update({
             time: Math.floor(parseFloat(ohlc[0])) as UTCTimestamp,
-            open: parseFloat(ohlc[2]),
-            high: parseFloat(ohlc[3]),
-            low: parseFloat(ohlc[4]),
-            close: parseFloat(ohlc[5]),
+            value: parseFloat(ohlc[5]), // close price
           });
         } catch {
           // ignore
@@ -371,7 +367,7 @@ export function SimpleChart({ symbol }: SimpleChartProps) {
                 fontWeight: 600,
                 fontFamily: "Manrope, Inter, sans-serif",
                 background: active ? THEME.primary : "transparent",
-                color: active ? "#fff" : THEME.text,
+                color: active ? THEME.primaryContrast : THEME.text,
                 transition: "background 0.15s, color 0.15s",
                 letterSpacing: "0.02em",
               }}
@@ -415,7 +411,7 @@ export function SimpleChart({ symbol }: SimpleChartProps) {
                 width: "28px",
                 height: "28px",
                 borderRadius: "50%",
-                border: `3px solid rgba(109,92,246,0.2)`,
+                border: `3px solid ${THEME.spinnerBorder}`,
                 borderTopColor: THEME.primary,
                 animation: "sc-spin 0.7s linear infinite",
               }}

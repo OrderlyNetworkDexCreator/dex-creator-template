@@ -82,12 +82,6 @@ const DEFAULT_ENABLED_MENUS = [
   { name: "Trading", href: "/", translationKey: "common.trading" },
   { name: "Portfolio", href: "/portfolio", translationKey: "common.portfolio" },
   { name: "Markets", href: "/markets", translationKey: "common.markets" },
-  { name: "Swap", href: "/swap", translationKey: "extend.swap" },
-  {
-    name: "Leaderboard",
-    href: "/leaderboard",
-    translationKey: "tradingLeaderboard.leaderboard",
-  },
 ];
 
 const getCustomMenuItems = (): MainNavItem[] => {
