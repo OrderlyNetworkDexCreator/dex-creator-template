@@ -237,24 +237,35 @@ jobs:
           else
             echo "⚠️  DNS WARNING: ${DOMAIN} does not appear to point to GitHub Pages."
             echo ""
+            # Detect the specific wrong-value mistake from Orderly's template instructions
+            if [ "$CNAME_TARGET" = "orderlynetworkdexcreator.github.io" ]; then
+              echo "   ⚠️  WRONG CNAME VALUE: Your DNS is pointing to orderlynetworkdexcreator.github.io"
+              echo "   That is the template owner's GitHub Pages URL — not yours."
+              echo "   You need to UPDATE it to xsunn3.github.io (your fork's URL)."
+              echo ""
+            fi
             echo "   The DEX will NOT be reachable at ${DOMAIN} until DNS is configured."
-            echo "   Add the following record at your domain registrar:"
+            echo "   Update the following record at your domain registrar:"
             echo ""
             echo "   Type : CNAME"
             echo "   Name : trade"
-            echo "   Value: xsunn3.github.io"
+            echo "   Value: xsunn3.github.io   ← use THIS, not orderlynetworkdexcreator.github.io"
             echo "   TTL  : 3600 (or Automatic)"
             echo ""
             echo "   GitHub Pages can only provision an SSL certificate for ${DOMAIN}"
             echo "   once the DNS is pointed here. The deployment will continue, but"
             echo "   HTTPS will not work until DNS is updated."
-            echo "::warning::DNS for ${DOMAIN} is not pointing to GitHub Pages. Add a CNAME record: trade → xsunn3.github.io at your registrar. The DEX will not load until DNS is configured."
+            echo "::warning::DNS for ${DOMAIN} is not pointing to GitHub Pages. Update your CNAME record: trade → xsunn3.github.io (not orderlynetworkdexcreator.github.io). The DEX will not load until DNS is updated."
             {
-              echo "## ⚠️ Action Required: DNS not configured for ${DOMAIN}"
+              echo "## ⚠️ Action Required: DNS not configured correctly for ${DOMAIN}"
               echo ""
-              echo "The DEX at **${DOMAIN}** will not load until DNS is set up."
+              if [ "$CNAME_TARGET" = "orderlynetworkdexcreator.github.io" ]; then
+                echo "> ⚠️ **Wrong CNAME detected**: Your DNS is pointing to \`orderlynetworkdexcreator.github.io\` (the template owner's GitHub Pages). You need to **update** it to \`xsunn3.github.io\` (your fork's GitHub Pages URL)."
+                echo ""
+              fi
+              echo "The DEX at **${DOMAIN}** will not load until DNS points to the right place."
               echo ""
-              echo "At your domain registrar, add this record:"
+              echo "At your domain registrar, set this record:"
               echo ""
               echo "| Field | Value |"
               echo "|-------|-------|"
