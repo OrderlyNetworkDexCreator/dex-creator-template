@@ -1,34 +1,40 @@
 export const LoadingSpinner = () => (
-  <div className="loading-container">
-    <div className="loading-spinner"></div>
-    <style>
-      {`
-        .loading-container {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          width: 100%;
-          height: 100vh;
-          background-color: rgba(0, 0, 0, 0.03);
-        }
-        .loading-spinner {
-          width: 50px;
-          height: 50px;
-          border: 4px solid rgba(0, 0, 0, 0.1);
-          border-radius: 50%;
-          border-left-color: #09f;
-          animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-          0% {
-            transform: rotate(0deg);
-          }
-          100% {
-            transform: rotate(360deg);
-          }
-        }
-      `}
-    </style>
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      alignItems: "center",
+      width: "100%",
+      height: "100vh",
+      background: "rgb(8 8 20)",
+      gap: "28px",
+    }}
+  >
+    <img
+      src="/logo.webp"
+      alt="Virgos"
+      style={{ height: "52px", opacity: 0.92 }}
+      onError={(e) => {
+        (e.target as HTMLImageElement).style.display = "none";
+      }}
+    />
+    <div
+      style={{
+        width: "40px",
+        height: "40px",
+        borderRadius: "50%",
+        border: "3px solid rgba(109, 92, 246, 0.18)",
+        borderTopColor: "rgb(109, 92, 246)",
+        animation: "virgos-spin 0.75s linear infinite",
+      }}
+    />
+    <style>{`
+      @keyframes virgos-spin {
+        to { transform: rotate(360deg); }
+      }
+    `}</style>
   </div>
 );
+
 
