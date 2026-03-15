@@ -365,20 +365,88 @@ jobs:
               }
             }
 
-            // Step 2: Attempt to enforce HTTPS (only succeeds once the SSL cert is provisioned)
-            try {
-              await github.rest.repos.updateInformationAboutPagesSite({
-                owner,
-                repo,
-                https_enforced: true
-              });
-              console.log('✅ HTTPS enforcement enabled');
-            } catch (error) {
+            // Step 2: Poll for SSL certificate provisioning (up to ~10 minutes)
+            // GitHub Pages provisions the cert automatically once DNS is correct and the
+            // custom domain is saved. We must NOT enforce HTTPS before the cert is approved,
+            // or browsers that remember the HSTS header will show ERR_CERT_COMMON_NAME_INVALID.
+            console.log('Checking SSL certificate state for ' + domain + '...');
+            let certApproved = false;
+            const maxWaitMinutes = 10;
+            const delayMs        = 30000; // 30 seconds between polls
+            const maxAttempts    = Math.ceil((maxWaitMinutes * 60) / (delayMs / 1000));
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              try {
+                const pages = await github.rest.repos.getPages({ owner, repo });
+                const cert  = pages.data.https_certificate;
+                const state = cert ? cert.state : 'unknown';
+                console.log(`  Attempt ${attempt}/${maxAttempts}: certificate state = ${state}`);
+                if (state === 'approved') {
+                  certApproved = true;
+                  console.log('✅ SSL certificate is approved.');
+                  break;
+                }
+                if (state === 'error' || state === 'bad_authz') {
+                  core.warning(
+                    `SSL certificate is in error state "${state}" for ${domain}.\n` +
+                    `This usually means DNS has not propagated yet or the CNAME record is missing.\n` +
+                    `Verify that the following DNS record exists at your registrar:\n` +
+                    `  Type : CNAME\n` +
+                    `  Name : trade\n` +
+                    `  Value: xsunn3.github.io\n` +
+                    `DNS propagation can take up to 24 hours. Re-run this workflow after DNS propagates.`
+                  );
+                  break;
+                }
+              } catch (e) {
+                console.log(`  Attempt ${attempt}/${maxAttempts}: could not read Pages info (${e.message})`);
+              }
+              if (attempt < maxAttempts) {
+                console.log(`  Waiting 30 s before next check...`);
+                await new Promise(r => setTimeout(r, delayMs));
+              }
+            }
+
+            // Step 3: Enforce HTTPS only when the certificate is approved
+            if (certApproved) {
+              try {
+                await github.rest.repos.updateInformationAboutPagesSite({
+                  owner,
+                  repo,
+                  https_enforced: true
+                });
+                console.log('✅ HTTPS enforcement enabled');
+                core.summary.addRaw(`## ✅ HTTPS enforced for ${domain}\nThe SSL certificate is approved and HTTPS is now enforced.`);
+                await core.summary.write();
+              } catch (error) {
+                core.warning(`Could not enable HTTPS enforcement: ${error.message}`);
+              }
+            } else {
               core.warning(
-                `HTTPS enforcement not yet available: ${error.message}\n` +
-                `This is normal if DNS was just configured or the SSL certificate is still being provisioned.\n` +
-                `ACTION REQUIRED: Once the certificate is ready (usually within 24 hours of DNS propagation),\n` +
-                `  go to GitHub → Settings → Pages and check "Enforce HTTPS".`
+                `SSL certificate for ${domain} is not yet approved.\n` +
+                `HTTPS enforcement has NOT been enabled to avoid ERR_CERT_COMMON_NAME_INVALID errors.\n` +
+                `\n` +
+                `Once DNS propagates and GitHub provisions the certificate (usually within 24 hours),\n` +
+                `re-run this workflow from the Actions tab → "Run workflow" to enable HTTPS enforcement.`
               );
+              {
+                const summary = [
+                  `## ⚠️ SSL certificate not yet approved for ${domain}`,
+                  ``,
+                  `HTTPS enforcement was **not** enabled because the certificate is still being provisioned.`,
+                  `This prevents the \`ERR_CERT_COMMON_NAME_INVALID\` + HSTS error in browsers.`,
+                  ``,
+                  `**What to do:**`,
+                  `1. Confirm your DNS record at your registrar:`,
+                  `   | Field | Value |`,
+                  `   |-------|-------|`,
+                  `   | Type  | CNAME |`,
+                  `   | Name  | \`trade\` |`,
+                  `   | Value | \`xsunn3.github.io\` |`,
+                  `2. Wait up to 24 hours for DNS propagation.`,
+                  `3. Re-run the **Deploy to GitHub Pages** workflow once propagation is complete.`,
+                ].join('\n');
+                core.summary.addRaw(summary);
+                await core.summary.write();
+              }
             }
 

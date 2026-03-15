@@ -113,12 +113,13 @@ jobs:
                 repo: context.repo.repo
               });
               const data = pages.data;
+              const certState = data.https_certificate ? data.https_certificate.state : 'unknown';
               console.log('');
               console.log('GitHub Pages settings:');
               console.log(`  URL           : ${data.html_url}`);
               console.log(`  Custom domain : ${data.cname || '(not set)'}`);
               console.log(`  HTTPS enforced: ${data.https_enforced}`);
-              console.log(`  HTTPS cert    : ${data.https_certificate ? data.https_certificate.state : 'unknown'}`);
+              console.log(`  HTTPS cert    : ${certState}`);
               console.log('');
               if (!data.cname) {
                 console.log('⚠️  Custom domain is not set in GitHub Pages settings.');
@@ -129,17 +130,41 @@ jobs:
               } else {
                 console.log(`✅ Custom domain "${domain}" is correctly set in GitHub Pages.`);
               }
-              if (!data.https_enforced) {
-                console.log('⚠️  HTTPS enforcement is disabled. Run the Deploy workflow to enable it.');
+              if (certState !== 'approved') {
+                // HTTPS enforcement must NOT be enabled while the cert is not approved.
+                // Enforcing HTTPS with an unapproved cert causes ERR_CERT_COMMON_NAME_INVALID
+                // and, combined with HSTS, locks browsers out of the domain entirely.
+                if (data.https_enforced) {
+                  console.log('');
+                  console.log('❌ HTTPS enforcement is ENABLED but the SSL certificate is NOT approved.');
+                  console.log(`   Certificate state: ${certState}`);
+                  console.log('   This causes ERR_CERT_COMMON_NAME_INVALID (and HSTS lockout) in browsers.');
+                  console.log('');
+                  console.log('   ── ACTION REQUIRED ─────────────────────────────');
+                  console.log('   1. Go to GitHub → Settings → Pages');
+                  console.log('   2. UNCHECK "Enforce HTTPS" until the certificate is approved.');
+                  console.log('   3. Confirm the DNS CNAME record exists:');
+                  const cnameHost  = domain.split('.')[0];                  // e.g. "trade"
+                  const cnameValue = `${context.repo.owner}.github.io`;    // e.g. "xsunn3.github.io"
+                  console.log(`        Type : CNAME`);
+                  console.log(`        Name : ${cnameHost}`);
+                  console.log(`        Value: ${cnameValue}`);
+                  console.log('   4. Wait for DNS propagation (up to 24 hours).');
+                  console.log('   5. Re-run the Deploy workflow once the certificate shows "approved".');
+                  console.log('   ─────────────────────────────────────────────────');
+                  core.setFailed('HTTPS is enforced but SSL cert is not approved — this causes ERR_CERT_COMMON_NAME_INVALID. Disable "Enforce HTTPS" in Settings → Pages until the certificate is approved.');
+                } else {
+                  console.log(`⚠️  SSL certificate state: ${certState}`);
+                  console.log('   The certificate is still being provisioned or has an error.');
+                  console.log('   Confirm DNS is set and wait up to 24 hours, then re-run the Deploy workflow.');
+                }
               } else {
-                console.log('✅ HTTPS enforcement is enabled.');
-              }
-              if (data.https_certificate && data.https_certificate.state !== 'approved') {
-                console.log(`⚠️  SSL certificate state: ${data.https_certificate.state}`);
-                console.log('   The certificate may still be provisioning. Check again in a few minutes.');
-                console.log('   If DNS is correct and the cert stays in error state, re-run the Deploy workflow.');
-              } else if (data.https_certificate && data.https_certificate.state === 'approved') {
                 console.log('✅ SSL certificate is approved and active.');
+                if (!data.https_enforced) {
+                  console.log('⚠️  HTTPS enforcement is disabled. Re-run the Deploy workflow to enable it.');
+                } else {
+                  console.log('✅ HTTPS enforcement is enabled.');
+                }
               }
             } catch (error) {
               if (error.status === 404) {
