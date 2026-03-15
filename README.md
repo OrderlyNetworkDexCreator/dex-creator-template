@@ -102,6 +102,9 @@ To serve the DEX from your own domain (e.g. `trade.yourdomain.com`):
    | **Value** | `xsunn3.github.io` |
    | **TTL** | `3600` (or Automatic) |
 
+   > ⚠️ **Use `xsunn3.github.io`, NOT `orderlynetworkdexcreator.github.io`.**
+   > Orderly's own setup instructions reference the template owner's URL. For this repository (your fork), the correct value is `xsunn3.github.io`. Using the wrong value will prevent the site from loading.
+
    > ⏱️ DNS changes can take up to 24 hours to propagate globally. The site will not be reachable at your custom domain until this record is in place and has propagated.
 
 3. **Enable GitHub Pages** in the repository settings:
