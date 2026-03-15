@@ -141,8 +141,10 @@ jobs:
         id: check-custom-domain
         run: |
           if [ -f "CNAME" ]; then
+            DOMAIN=$(cat CNAME | tr -d '[:space:]')
             echo "has_custom_domain=true" >> $GITHUB_OUTPUT
-            echo "Found custom domain: $(cat CNAME)"
+            echo "domain=${DOMAIN}" >> $GITHUB_OUTPUT
+            echo "Found custom domain: ${DOMAIN}"
           else
             echo "has_custom_domain=false" >> $GITHUB_OUTPUT
             echo "No custom domain configured"
@@ -198,6 +200,12 @@ jobs:
           cp public/config.js ./build/client/config.js
           echo "✅ Updated config.js copied to build output"
 
+      - name: Copy CNAME to build output
+        if: steps.check-custom-domain.outputs.has_custom_domain == 'true'
+        run: |
+          cp CNAME ./build/client/CNAME
+          echo "✅ CNAME file copied to build output: ${{ steps.check-custom-domain.outputs.domain }}"
+
       - name: Cache build artifacts
         if: steps.check-changes.outputs.needs_build == 'true' || steps.force-build.outputs.needs_build == 'true'
         uses: actions/cache/save@v4
@@ -219,3 +227,22 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Configure custom domain and enforce HTTPS
+        if: steps.check-custom-domain.outputs.has_custom_domain == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.TEMPLATE_PAT || github.token }}
+          script: |
+            const cname = '${{ steps.check-custom-domain.outputs.domain }}';
+            try {
+              await github.rest.repos.updateInformationAboutPagesSite({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                cname: cname,
+                https_enforced: true
+              });
+              console.log(`✅ Configured custom domain: ${cname} with HTTPS enforcement`);
+            } catch (error) {
+              console.log(`Note: ${error.message}`);
+            }
