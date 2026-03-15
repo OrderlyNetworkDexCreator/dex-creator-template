@@ -262,7 +262,20 @@ jobs:
             const repo = context.repo.repo;
             try {
               const site = await github.rest.repos.getPages({ owner, repo });
-              console.log('✅ GitHub Pages already configured, source:', JSON.stringify(site.data.source));
+              const source = site.data.source;
+              console.log('✅ GitHub Pages already configured, source:', JSON.stringify(source));
+              // If Pages is configured but not using gh-pages branch, switch it
+              if (source && source.branch !== 'gh-pages') {
+                try {
+                  await github.rest.repos.updateInformationAboutPagesSite({
+                    owner, repo,
+                    source: { branch: 'gh-pages', path: '/' }
+                  });
+                  console.log('✅ Updated Pages source to gh-pages branch');
+                } catch (updateErr) {
+                  core.warning(`Could not update Pages source: ${updateErr.message}`);
+                }
+              }
             } catch (getErr) {
               console.log('Pages not configured yet, attempting to enable...');
               try {
@@ -276,7 +289,8 @@ jobs:
                   `Could not enable Pages automatically: ${createErr.message}\n` +
                   'ACTION REQUIRED: Please enable GitHub Pages manually at:\n' +
                   `  https://github.com/${owner}/${repo}/settings/pages\n` +
-                  '  → Source: Deploy from a branch → Branch: gh-pages → /(root)'
+                  '  → Source: Deploy from a branch → Branch: gh-pages → /(root)\n' +
+                  'This is a one-time setup. Future deploys will update automatically.'
                 );
               }
             }
@@ -301,7 +315,19 @@ jobs:
             const repo = context.repo.repo;
             const domain = '${{ steps.check-custom-domain.outputs.domain }}';
 
-            // Step 1: Set the custom domain (without HTTPS enforcement first)
+            // Step 1: Ensure Pages source is set to gh-pages branch
+            try {
+              await github.rest.repos.updateInformationAboutPagesSite({
+                owner,
+                repo,
+                source: { branch: 'gh-pages', path: '/' }
+              });
+              console.log('✅ GitHub Pages source set to gh-pages branch');
+            } catch (error) {
+              core.warning(`Could not set Pages source: ${error.message}`);
+            }
+
+            // Step 2: Set the custom domain (without HTTPS enforcement first)
             try {
               await github.rest.repos.updateInformationAboutPagesSite({
                 owner,
@@ -317,7 +343,7 @@ jobs:
               );
             }
 
-            // Step 2: Attempt to enforce HTTPS (only succeeds once the SSL cert is provisioned)
+            // Step 3: Attempt to enforce HTTPS (only succeeds once the SSL cert is provisioned)
             try {
               await github.rest.repos.updateInformationAboutPagesSite({
                 owner,
@@ -333,3 +359,4 @@ jobs:
                 `  go to GitHub → Settings → Pages and check "Enforce HTTPS".`
               );
             }
+
