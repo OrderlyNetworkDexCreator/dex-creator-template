@@ -1,6 +1,6 @@
 # Orderly Broker UI Template
 
-This template provides a quick way to set up a customized trading UI for Orderly Network brokers, deployed automatically to GitHub Pages.
+This template provides a quick way to set up a customized trading UI for Orderly Network brokers. It can be deployed to **Vercel** (recommended) or GitHub Pages.
 
 ## Quick Start
 
@@ -74,54 +74,106 @@ yarn dev
 
 ## Deployment
 
-This project deploys automatically to **GitHub Pages** via GitHub Actions whenever you push to the `main` branch. No manual build or upload step is needed.
+### ✅ Recommended: Deploy to Vercel (simplest)
 
-### How it works
+Vercel is the best option for this DEX. The repo already contains a ready `vercel.json`. Compared to GitHub Pages, Vercel:
+- Has **native SPA routing** — no workaround scripts needed
+- Gives every project a unique URL (no risk of DNS pointing to the wrong fork)
+- Automatically provisions and renews SSL for your custom domain
+- Provides preview deployments on every pull request
+- Has a fast, globally distributed CDN
 
-1. Push your changes to the `main` branch.
-2. The [Deploy to GitHub Pages](.github/workflows/deploy.yml) workflow runs automatically.
-3. It builds the app and publishes it to GitHub Pages.
+#### Step 1 — Connect your repository to Vercel
 
-### Custom Domain Setup
+1. Go to [vercel.com](https://vercel.com) and sign in with your GitHub account
+2. Click **Add New → Project** and import `xsunn3/virgos-0077`
+3. Vercel will auto-detect the settings from `vercel.json` — no changes needed:
+   - **Install command**: `yarn install --frozen-lockfile`
+   - **Build command**: `yarn build`
+   - **Output directory**: `build/client`
+4. Click **Deploy** — your DEX will be live at `https://virgos-0077.vercel.app` (or similar) within ~2 minutes
 
-To serve the DEX from your own domain (e.g. `trade.yourdomain.com`):
+#### Step 2 — Add your custom domain `trade.virgos.ai`
 
-1. **Add a `CNAME` file** to the root of this repository containing your custom domain:
-
-   ```
-   trade.yourdomain.com
-   ```
-
-   > The file `CNAME` in this repo is already set to `trade.virgos.ai`.
-
-2. **Configure DNS** at your domain registrar — add a `CNAME` record:
+1. In the Vercel project dashboard, go to **Settings → Domains**
+2. Type `trade.virgos.ai` and click **Add**
+3. Vercel will show you the DNS record to set. At your domain registrar, add:
 
    | Field | Value |
    |-------|-------|
+   | **Type** | CNAME |
+   | **Name** | `trade` |
+   | **Value** | `cname.vercel-dns.com` |
+   | **TTL** | `3600` (or Automatic) |
+
+4. Wait for DNS propagation (usually 5–30 minutes, up to 24 hours)
+5. Vercel automatically provisions an SSL certificate — no extra steps
+
+#### Step 3 — Configure your DEX settings
+
+Edit `public/config.js`, commit, and push. Vercel will redeploy automatically (~60 seconds). All settings — broker ID, chain, logos, colors — are controlled through this single file.
+
+---
+
+### Alternative: Deploy to GitHub Pages
+
+GitHub Pages is free and already has an automated workflow in this repo. It requires more setup than Vercel and has some known limitations (see Troubleshooting section below), but works well once configured.
+
+Push any change to the `main` branch — the [Deploy to GitHub Pages](.github/workflows/deploy.yml) workflow runs automatically and publishes to the `gh-pages` branch.
+
+#### Custom domain for GitHub Pages
+
+1. **Ensure the `CNAME` file** in the root of this repo contains your domain:
+   ```
+   trade.virgos.ai
+   ```
+
+2. **Configure DNS** at your registrar:
+
+   | Field | Value |
+   |-------|-------|
+   | **Type** | CNAME |
    | **Name** | `trade` |
    | **Value** | `xsunn3.github.io` |
    | **TTL** | `3600` (or Automatic) |
 
-   > ⚠️ **Use `xsunn3.github.io`, NOT `orderlynetworkdexcreator.github.io`.**
-   > Orderly's own setup instructions reference the template owner's URL. For this repository (your fork), the correct value is `xsunn3.github.io`. Using the wrong value will prevent the site from loading.
+   > ⚠️ Use `xsunn3.github.io` (your fork), **not** `orderlynetworkdexcreator.github.io` (the original Orderly repo). Using the wrong value will show a broken demo DEX instead of yours.
 
-   > ⏱️ DNS changes can take up to 24 hours to propagate globally. The site will not be reachable at your custom domain until this record is in place and has propagated.
+3. **Enable GitHub Pages** in repository settings:
+   - Go to **Settings → Pages → Source → Deploy from a branch**
+   - Set branch to `gh-pages`, folder to `/ (root)`, and click **Save**
 
-3. **Enable GitHub Pages** in the repository settings:
-   - Go to **Settings → Pages**
-   - Under **Source**, select **Deploy from a branch**
-   - Set **Branch** to `gh-pages` and the folder to `/ (root)`
-   - Click **Save**
+## Troubleshooting: DEX Not Visible at `trade.virgos.ai`
 
-   > The deploy workflow pushes built files to the `gh-pages` branch automatically on every push to `main`. No manual upload is needed after initial setup.
+### Why is the wrong DEX (or a broken page) showing?
 
-4. **Set the Custom domain** in GitHub Pages settings:
-   - In **Settings → Pages → Custom domain**, enter `trade.virgos.ai`
-   - Click **Save**
+When Orderly created this repository, it placed it under **`OrderlyNetworkDexCreator/virgos-0077`** first, with placeholder settings (`broker_id=demo`, a non-existent chain). You then forked it to **`xsunn3/virgos-0077`** and updated the config with the real settings (`broker_id=virgos`, Base chain 8453).
 
-   > The deploy workflow also sets this automatically via the GitHub API on every successful deploy. If the custom domain field appears blank after a failed deploy, you can set it manually here, or push any change to `main` to re-trigger the workflow.
+However, your **DNS still points to the original Orderly repo** (`orderlynetworkdexcreator.github.io`), which means visitors to `trade.virgos.ai` see the old placeholder deployment — not your real DEX.
 
-> ⚠️ **Do not add this domain to Vercel.** The site is hosted on GitHub Pages. Adding the domain to a different Vercel project (such as your main marketing site) will cause the wrong site to be served at that URL — which is the most common misconfiguration.
+```
+Current (wrong):   trade.virgos.ai → orderlynetworkdexcreator.github.io  ← shows demo/broken DEX
+Correct:           trade.virgos.ai → xsunn3.github.io                    ← shows YOUR perp DEX
+```
+
+### ✅ The Fix — One DNS change at your registrar
+
+1. Log into your domain registrar (e.g. Namecheap, GoDaddy, Cloudflare)
+2. Find the DNS record for `trade.virgos.ai`
+3. Change the **CNAME** value:
+
+| Field | Current value (wrong) | Change to |
+|-------|-----------------------|-----------|
+| Type  | CNAME | CNAME |
+| Name  | `trade` | `trade` |
+| Value | `orderlynetworkdexcreator.github.io` | **`xsunn3.github.io`** |
+| TTL   | anything | `3600` (or Automatic) |
+
+4. Save the record and wait for DNS propagation (up to 24 hours, usually 5–30 minutes)
+
+Once DNS propagates, `trade.virgos.ai` will serve your perp DEX (broker: **virgos**, chain: **Base**) from this repository.
+
+---
 
 ## Additional Resources
 
