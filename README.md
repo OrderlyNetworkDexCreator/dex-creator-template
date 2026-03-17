@@ -123,6 +123,38 @@ To serve the DEX from your own domain (e.g. `trade.yourdomain.com`):
 
 > ⚠️ **Do not add this domain to Vercel.** The site is hosted on GitHub Pages. Adding the domain to a different Vercel project (such as your main marketing site) will cause the wrong site to be served at that URL — which is the most common misconfiguration.
 
+## Troubleshooting: DEX Not Visible at `trade.virgos.ai`
+
+### Why is the wrong DEX (or a broken page) showing?
+
+When Orderly created this repository, it placed it under **`OrderlyNetworkDexCreator/virgos-0077`** first, with placeholder settings (`broker_id=demo`, a non-existent chain). You then forked it to **`xsunn3/virgos-0077`** and updated the config with the real settings (`broker_id=virgos`, Base chain 8453).
+
+However, your **DNS still points to the original Orderly repo** (`orderlynetworkdexcreator.github.io`), which means visitors to `trade.virgos.ai` see the old placeholder deployment — not your real DEX.
+
+```
+Current (wrong):   trade.virgos.ai → orderlynetworkdexcreator.github.io  ← shows demo/broken DEX
+Correct:           trade.virgos.ai → xsunn3.github.io                    ← shows YOUR perp DEX
+```
+
+### ✅ The Fix — One DNS change at your registrar
+
+1. Log into your domain registrar (e.g. Namecheap, GoDaddy, Cloudflare)
+2. Find the DNS record for `trade.virgos.ai`
+3. Change the **CNAME** value:
+
+| Field | Current value (wrong) | Change to |
+|-------|-----------------------|-----------|
+| Type  | CNAME | CNAME |
+| Name  | `trade` | `trade` |
+| Value | `orderlynetworkdexcreator.github.io` | **`xsunn3.github.io`** |
+| TTL   | anything | `3600` (or Automatic) |
+
+4. Save the record and wait for DNS propagation (up to 24 hours, usually 5–30 minutes)
+
+Once DNS propagates, `trade.virgos.ai` will serve your perp DEX (broker: **virgos**, chain: **Base**) from this repository.
+
+---
+
 ## Additional Resources
 
 - [Orderly JS SDK Documentation](https://github.com/OrderlyNetwork/js-sdk)

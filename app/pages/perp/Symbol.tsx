@@ -23,12 +23,31 @@ export default function PerpSymbol() {
   }, [symbol]);
 
   // Overlay SimpleChart on top of TradingView's chart pane.
-  // The TradingView widget root is a `div.oui-relative.oui-size-full.oui-z-1` 
-  // (position:relative), so we can append a position:absolute child with higher
-  // z-index to cover it cleanly.
+  // Primary: wait for TradingView iframe to appear, then inject over it.
+  // Fallback: if TradingView never loads (e.g. domain not licensed), find the
+  // chart container directly by its Orderly CSS class after a short timeout.
   useEffect(() => {
+    const TRADINGVIEW_TIMEOUT_MS = 4000;
+    const MIN_CHART_WIDTH = 200;
+    const MIN_CHART_HEIGHT = 100;
+
     let overlayDiv: HTMLDivElement | null = null;
     let observer: MutationObserver | null = null;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const injectIntoContainer = (container: Element) => {
+      if (overlayDiv) return; // already injected
+      overlayDiv = document.createElement("div");
+      overlayDiv.style.cssText =
+        "position:absolute;inset:0;z-index:10;overflow:hidden;";
+      container.appendChild(overlayDiv);
+      setPortalTarget(overlayDiv);
+      observer?.disconnect();
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+    };
 
     const tryInject = () => {
       if (overlayDiv) return; // already injected
@@ -41,19 +60,40 @@ export default function PerpSymbol() {
         iframe.parentElement?.parentElement?.parentElement ?? null;
       if (!chartRoot) return;
 
-      overlayDiv = document.createElement("div");
-      overlayDiv.style.cssText =
-        "position:absolute;inset:0;z-index:10;overflow:hidden;";
-      chartRoot.appendChild(overlayDiv);
-      setPortalTarget(overlayDiv);
-      observer?.disconnect();
+      injectIntoContainer(chartRoot);
+    };
+
+    // Fallback: TradingView may not initialize if domain is unlicensed.
+    // Find the chart container directly via its Orderly CSS class instead.
+    const tryInjectFallback = () => {
+      if (overlayDiv) return; // primary injection already succeeded
+      const candidates = document.querySelectorAll<HTMLElement>(
+        ".oui-relative.oui-size-full.oui-z-1"
+      );
+      let best: HTMLElement | null = null;
+      let maxArea = 0;
+      for (const el of candidates) {
+        const rect = el.getBoundingClientRect();
+        const area = rect.width * rect.height;
+        if (area > maxArea && rect.width > MIN_CHART_WIDTH && rect.height > MIN_CHART_HEIGHT) {
+          maxArea = area;
+          best = el;
+        }
+      }
+      if (best) {
+        injectIntoContainer(best);
+      }
     };
 
     observer = new MutationObserver(tryInject);
     observer.observe(document.body, { subtree: true, childList: true });
     tryInject(); // also try immediately (TradingView might already be ready)
 
+    // After TRADINGVIEW_TIMEOUT_MS, fall back to class-based injection if TradingView never loaded
+    fallbackTimer = setTimeout(tryInjectFallback, TRADINGVIEW_TIMEOUT_MS);
+
     return () => {
+      if (fallbackTimer) clearTimeout(fallbackTimer);
       observer?.disconnect();
       if (overlayDiv) {
         overlayDiv.remove();
