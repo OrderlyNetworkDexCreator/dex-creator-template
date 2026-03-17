@@ -177,6 +177,7 @@ jobs:
         if: ${{ steps.check-custom-domain.outputs.has_custom_domain == 'false' && (steps.check-changes.outputs.needs_build == 'true' || steps.force-build.outputs.needs_build == 'true') }}
         run: yarn build:spa
         env:
+          NODE_OPTIONS: --max-old-space-size=6144
           # Set the base path for GitHub Pages using repo name
           PUBLIC_PATH: /${{ env.REPO_NAME }}/
           # Also set it as VITE environment variables
@@ -187,6 +188,7 @@ jobs:
         if: ${{ steps.check-custom-domain.outputs.has_custom_domain == 'true' && (steps.check-changes.outputs.needs_build == 'true' || steps.force-build.outputs.needs_build == 'true') }}
         run: yarn build:spa
         env:
+          NODE_OPTIONS: --max-old-space-size=6144
           # For custom domains, use root path
           PUBLIC_PATH: /
           VITE_PUBLIC_PATH: /
