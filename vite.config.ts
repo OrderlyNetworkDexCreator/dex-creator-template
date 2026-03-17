@@ -57,6 +57,42 @@ export default defineConfig(() => {
     ],
     build: {
       outDir: "build/client",
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            "react-vendor": ["react", "react-dom", "react-router-dom", "react-helmet-async"],
+            "wallet-vendor": [
+              "wagmi",
+              "@web3-onboard/walletconnect",
+              "@solana/wallet-adapter-base",
+              "@solana/wallet-adapter-wallets",
+              "@solana-mobile/wallet-adapter-mobile",
+              "@privy-io/cross-app-connect",
+              "@orderly.network/wallet-connector",
+              "@orderly.network/wallet-connector-privy",
+            ],
+            "orderly-ui": [
+              "@orderly.network/ui",
+              "@orderly.network/ui-scaffold",
+            ],
+            "orderly-trading": [
+              "@orderly.network/trading",
+              "@orderly.network/markets",
+              "@orderly.network/portfolio",
+            ],
+            "orderly-misc": [
+              "@orderly.network/react-app",
+              "@orderly.network/affiliate",
+              "@orderly.network/trading-leaderboard",
+              "@orderly.network/trading-points",
+              "@orderly.network/vaults",
+              "@orderly.network/i18n",
+              "@orderly.network/types",
+            ],
+            "charting": ["lightweight-charts"],
+          },
+        },
+      },
     },
     optimizeDeps: {
       include: ["react", "react-dom", "react-router-dom"],
