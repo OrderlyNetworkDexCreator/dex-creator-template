@@ -1,7 +1,13 @@
 {
+  "installCommand": "yarn install --frozen-lockfile",
   "buildCommand": "yarn build",
   "outputDirectory": "build/client",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  ],
+  "build": {
+    "env": {
+      "NODE_OPTIONS": "--max-old-space-size=8192"
+    }
+  }
 }
