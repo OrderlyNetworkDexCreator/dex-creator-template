@@ -315,7 +315,7 @@ export const useOrderlyConfig = () => {
               {isMobile &&
               getRuntimeConfigBoolean("VITE_HAS_SECONDARY_LOGO") ? (
                 <img
-                  src={withBasePath("/logo-secondary.webp")}
+                  src={withBasePath("/logo-secondary.svg")}
                   alt="logo"
                   style={{ height: "32px" }}
                 />
@@ -369,7 +369,7 @@ export const useOrderlyConfig = () => {
             ? {
                 component: (
                   <img
-                    src={withBasePath("/logo.webp")}
+                    src={withBasePath("/logo.svg")}
                     alt="logo"
                     style={{ height: "42px" }}
                   />
@@ -378,7 +378,7 @@ export const useOrderlyConfig = () => {
             : { img: withBasePath("/orderly-logo.svg") },
           secondary: {
             img: getRuntimeConfigBoolean("VITE_HAS_SECONDARY_LOGO")
-              ? withBasePath("/logo-secondary.webp")
+              ? withBasePath("/logo-secondary.svg")
               : withBasePath("/orderly-logo-secondary.svg"),
           },
         },

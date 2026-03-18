@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 48" fill="none">
+  <!-- Stars constellation (Virgo motif) -->
+  <circle cx="10" cy="8" r="1.8" fill="white" opacity="0.9"/>
+  <circle cx="22" cy="4" r="1.2" fill="white" opacity="0.7"/>
+  <circle cx="18" cy="16" r="1.5" fill="white" opacity="0.85"/>
+  <circle cx="30" cy="12" r="1" fill="white" opacity="0.6"/>
+  <circle cx="26" cy="22" r="1.3" fill="white" opacity="0.75"/>
+  <!-- Constellation lines -->
+  <line x1="10" y1="8" x2="22" y2="4" stroke="white" stroke-width="0.5" opacity="0.35"/>
+  <line x1="22" y1="4" x2="30" y2="12" stroke="white" stroke-width="0.5" opacity="0.35"/>
+  <line x1="10" y1="8" x2="18" y2="16" stroke="white" stroke-width="0.5" opacity="0.35"/>
+  <line x1="18" y1="16" x2="26" y2="22" stroke="white" stroke-width="0.5" opacity="0.35"/>
+  <line x1="18" y1="16" x2="30" y2="12" stroke="white" stroke-width="0.5" opacity="0.35"/>
+  <!-- VIRGOS wordmark -->
+  <text
+    x="38"
+    y="31"
+    font-family="'Manrope', 'Inter', 'Helvetica Neue', Arial, sans-serif"
+    font-size="22"
+    font-weight="700"
+    letter-spacing="2"
+    fill="white"
+  >VIRGOS</text>
+</svg>

@@ -22,51 +22,30 @@ export default function PerpSymbol() {
     updateSymbol(symbol);
   }, [symbol]);
 
-  // Overlay SimpleChart on top of TradingView's chart pane.
-  // Primary: wait for TradingView iframe to appear, then inject over it.
-  // Fallback: if TradingView never loads (e.g. domain not licensed), find the
-  // chart container directly by its Orderly CSS class after a short timeout.
+  // Inject SimpleChart into the chart container area rendered by TradingPage.
+  // Since we don't use the TradingView library, we wait briefly for the Orderly
+  // scaffold to mount its chart container, then inject our Kraken-powered chart.
   useEffect(() => {
-    const TRADINGVIEW_TIMEOUT_MS = 4000;
+    // 800 ms gives the Orderly scaffold enough time to render the chart container
+    // and measure its dimensions reliably, without making the user wait noticeably.
+    const INJECT_TIMEOUT_MS = 800;
     const MIN_CHART_WIDTH = 200;
     const MIN_CHART_HEIGHT = 100;
 
     let overlayDiv: HTMLDivElement | null = null;
-    let observer: MutationObserver | null = null;
-    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
     const injectIntoContainer = (container: Element) => {
-      if (overlayDiv) return; // already injected
+      if (overlayDiv) return;
       overlayDiv = document.createElement("div");
       overlayDiv.style.cssText =
         "position:absolute;inset:0;z-index:10;overflow:hidden;";
       container.appendChild(overlayDiv);
       setPortalTarget(overlayDiv);
-      observer?.disconnect();
-      if (fallbackTimer) {
-        clearTimeout(fallbackTimer);
-        fallbackTimer = null;
-      }
     };
 
     const tryInject = () => {
-      if (overlayDiv) return; // already injected
-      // TradingView mounts as an <iframe id="tradingview_XXXXX">
-      const iframe = document.querySelector('iframe[id^="tradingview_"]');
-      if (!iframe) return;
-
-      // Walk up 3 levels: iframe → div.oui-size-full → div.oui-absolute → div.oui-relative
-      const chartRoot =
-        iframe.parentElement?.parentElement?.parentElement ?? null;
-      if (!chartRoot) return;
-
-      injectIntoContainer(chartRoot);
-    };
-
-    // Fallback: TradingView may not initialize if domain is unlicensed.
-    // Find the chart container directly via its Orderly CSS class instead.
-    const tryInjectFallback = () => {
-      if (overlayDiv) return; // primary injection already succeeded
+      if (overlayDiv) return;
       const candidates = document.querySelectorAll<HTMLElement>(
         ".oui-relative.oui-size-full.oui-z-1"
       );
@@ -85,15 +64,18 @@ export default function PerpSymbol() {
       }
     };
 
-    observer = new MutationObserver(tryInject);
+    // Wait briefly for the Orderly scaffold chart container to mount, then inject.
+    // Use a MutationObserver as primary and the timer as a safety net.
+    let observer: MutationObserver | null = new MutationObserver(tryInject);
     observer.observe(document.body, { subtree: true, childList: true });
-    tryInject(); // also try immediately (TradingView might already be ready)
+    tryInject(); // try immediately in case it's already mounted
 
-    // After TRADINGVIEW_TIMEOUT_MS, fall back to class-based injection if TradingView never loaded
-    fallbackTimer = setTimeout(tryInjectFallback, TRADINGVIEW_TIMEOUT_MS);
+    timer = setTimeout(() => {
+      tryInject();
+    }, INJECT_TIMEOUT_MS);
 
     return () => {
-      if (fallbackTimer) clearTimeout(fallbackTimer);
+      if (timer) clearTimeout(timer);
       observer?.disconnect();
       if (overlayDiv) {
         overlayDiv.remove();
@@ -124,7 +106,10 @@ export default function PerpSymbol() {
       <TradingPage
         symbol={symbol}
         onSymbolChange={onSymbolChange}
-        tradingViewConfig={config.tradingPage.tradingViewConfig}
+        tradingViewConfig={{
+          ...config.tradingPage.tradingViewConfig,
+          scriptSRC: undefined,
+        }}
         sharePnLConfig={config.tradingPage.sharePnLConfig}
       />
       {portalTarget && createPortal(<SimpleChart symbol={symbol} />, portalTarget)}
