@@ -522,7 +522,19 @@ jobs:
 
       - name: Deploy to Vercel
         if: steps.check-secrets.outputs.secrets_available == 'true'
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        id: vercel-deploy
+        run: |
+          DEPLOY_OUTPUT=$(vercel deploy --prebuilt --prod --no-clipboard --token=${{ secrets.VERCEL_TOKEN }})
+          DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -E '^https://' | tail -1)
+          if [ -z "$DEPLOY_URL" ]; then
+            echo "❌ Vercel deployment failed or returned no URL. Full output:" >&2
+            echo "$DEPLOY_OUTPUT" >&2
+            exit 1
+          fi
+          echo "deploy_url=${DEPLOY_URL}" >> $GITHUB_OUTPUT
+          echo "## ✅ Vercel Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🚀 Production URL: ${DEPLOY_URL}" >> $GITHUB_STEP_SUMMARY
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
