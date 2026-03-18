@@ -246,6 +246,81 @@ const router = createBrowserRouter([
 
 loadRuntimeConfig().then(() => {
   loadAnalytics();
+
+  // Catch unhandled promise rejections (e.g. Privy / WalletConnect network
+  // failures that happen outside React's render cycle) and surface them in the
+  // UI so the user sees a meaningful message instead of a black screen.
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    let msg: string;
+    if (reason instanceof Error) {
+      msg = reason.message;
+    } else if (typeof reason === 'string') {
+      msg = reason;
+    } else {
+      try {
+        msg = JSON.stringify(reason) || 'Unknown async error';
+      } catch {
+        msg = 'Unknown async error';
+      }
+    }
+
+    console.error('[unhandledrejection]', msg, reason);
+
+    const isWalletError =
+      msg.toLowerCase().includes('privy') ||
+      msg.toLowerCase().includes('walletconnect') ||
+      msg.toLowerCase().includes('appid') ||
+      msg.toLowerCase().includes('not authorized') ||
+      msg.toLowerCase().includes('invalid app id') ||
+      msg.toLowerCase().includes('domain not allowed');
+
+    // Only interrupt the UI for wallet-provider errors that would leave
+    // the page stuck on a blank / black screen.
+    if (isWalletError) {
+      const root = document.getElementById('root');
+      if (root) {
+        // Build the error UI with DOM methods to avoid XSS via innerHTML.
+        root.replaceChildren();
+
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'min-height:100vh;background:#0a0a14;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;font-family:system-ui,-apple-system,sans-serif;box-sizing:border-box;';
+
+        const card = document.createElement('div');
+        card.style.cssText = 'max-width:600px;width:100%;background:#13131f;border:1px solid #2a2a3a;border-radius:12px;padding:2rem;text-align:center;';
+
+        const icon = document.createElement('div');
+        icon.style.cssText = 'font-size:2rem;margin-bottom:1rem;';
+        icon.textContent = '⚠️';
+
+        const title = document.createElement('h2');
+        title.style.cssText = 'font-size:1.25rem;font-weight:700;margin-bottom:0.75rem;color:#ff6b6b;';
+        title.textContent = 'Wallet provider failed to initialize';
+
+        const errorMsg = document.createElement('p');
+        errorMsg.style.cssText = 'font-size:0.9rem;color:rgba(255,255,255,0.6);margin-bottom:1rem;line-height:1.6;';
+        errorMsg.textContent = msg;
+
+        const hint = document.createElement('p');
+        hint.style.cssText = 'font-size:0.85rem;color:rgba(255,255,255,0.5);margin-bottom:1.5rem;line-height:1.6;';
+        hint.textContent = 'This is usually caused by the current domain not being whitelisted in the Privy or WalletConnect dashboards. Add ';
+        const domainStrong = document.createElement('strong');
+        domainStrong.style.color = 'rgba(255,255,255,0.8)';
+        domainStrong.textContent = window.location.hostname;
+        hint.appendChild(domainStrong);
+        hint.appendChild(document.createTextNode(' to the allowed origins in both dashboards, then redeploy or reload.'));
+
+        const reloadBtn = document.createElement('button');
+        reloadBtn.style.cssText = 'padding:10px 28px;background:rgb(109,92,246);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;';
+        reloadBtn.textContent = 'Reload Page';
+        reloadBtn.addEventListener('click', () => window.location.reload());
+
+        card.append(icon, title, errorMsg, hint, reloadBtn);
+        overlay.appendChild(card);
+        root.appendChild(overlay);
+      }
+    }
+  });
   
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
