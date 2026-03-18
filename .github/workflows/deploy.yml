@@ -214,6 +214,7 @@ jobs:
           key: ${{ runner.os }}-build-${{ github.repository }}-${{ github.sha }}
 
       - name: Verify DNS configuration
+        id: verify-dns
         if: steps.check-custom-domain.outputs.has_custom_domain == 'true'
         run: |
           DOMAIN="${{ steps.check-custom-domain.outputs.domain }}"
@@ -233,64 +234,58 @@ jobs:
             done
           done
           if [ "$CNAME_TARGET" = "xsunn3.github.io" ]; then DNS_OK=true; fi
+          # Always write an explicit true/false so the output is never empty
+          if [ "$DNS_OK" = "true" ]; then
+            echo "dns_ok=true" >> $GITHUB_OUTPUT
+          else
+            echo "dns_ok=false" >> $GITHUB_OUTPUT
+          fi
+          echo "cname_target=${CNAME_TARGET}" >> $GITHUB_OUTPUT
           if [ "$DNS_OK" = "true" ]; then
             echo "✅ DNS for ${DOMAIN} is correctly pointing to GitHub Pages"
             echo "## ✅ DNS OK: ${DOMAIN} → GitHub Pages (xsunn3)" >> $GITHUB_STEP_SUMMARY
             echo "Your perp DEX (broker: virgos, chain: Base) is live at https://${DOMAIN}" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️  DNS WARNING: ${DOMAIN} does not appear to point to THIS deployment."
+            echo "⚠️  DNS for ${DOMAIN} does not point to GitHub Pages (current CNAME: '${CNAME_TARGET:-<not set>}')."
             echo ""
-            if [ "$CNAME_TARGET" = "orderlynetworkdexcreator.github.io" ]; then
-              echo "   🚨 ROOT CAUSE FOUND: Your DNS is pointing to orderlynetworkdexcreator.github.io"
-              echo "   That is the ORIGINAL Orderly-created repo — it uses broker_id=demo and"
-              echo "   a non-existent chain (900900900). Visitors see a broken demo, NOT your DEX."
-              echo ""
-              echo "   YOUR DEX (broker_id=virgos, Base chain 8453) is deployed here at:"
-              echo "   https://xsunn3.github.io"
-              echo ""
-              echo "   To make trade.virgos.ai show YOUR DEX, change the CNAME at your"
-              echo "   domain registrar from:"
-              echo "     orderlynetworkdexcreator.github.io  ← WRONG (Orderly's original repo)"
-              echo "   to:"
-              echo "     xsunn3.github.io                   ← CORRECT (your fork)"
-              echo ""
-            fi
-            echo "   Update the following DNS record at your domain registrar:"
+            echo "   ── DEPLOYMENT OPTIONS ──────────────────────────────────────────"
             echo ""
-            echo "   Type : CNAME"
-            echo "   Name : trade"
-            echo "   Value: xsunn3.github.io"
-            echo "   TTL  : 3600 (or Automatic)"
+            echo "   OPTION A — Use Vercel (recommended if DNS points to Vercel):"
+            echo "     1. Import https://github.com/xsunn3/virgos-0077 in vercel.com/new"
+            echo "     2. Add trade.virgos.ai as a custom domain in Vercel project settings"
+            echo "     3. Update DNS at your registrar:"
+            echo "          Type : CNAME"
+            echo "          Name : trade"
+            echo "          Value: cname.vercel-dns.com"
+            echo "          TTL  : Auto"
             echo ""
-            echo "   After updating DNS (takes up to 24h to propagate), your perp DEX"
-            echo "   (broker: virgos, chain: Base) will be live at https://${DOMAIN}"
-            echo "::error::YOUR DEX IS NOT VISIBLE at ${DOMAIN}. DNS CNAME must be changed to xsunn3.github.io. Current value '${CNAME_TARGET}' points to the wrong repo (Orderly's original with broker_id=demo, not yours)."
+            echo "   OPTION B — Use GitHub Pages (if you prefer GitHub Pages):"
+            echo "     1. At your domain registrar, change the DNS record to:"
+            echo "          Type : CNAME"
+            echo "          Name : trade"
+            echo "          Value: xsunn3.github.io"
+            echo "          TTL  : 3600 (or Automatic)"
+            echo "     2. Wait up to 24h for DNS propagation"
+            echo "     3. Re-run this workflow — GitHub will then provision the SSL cert"
+            echo ""
+            echo "   ─────────────────────────────────────────────────────────────────"
+            echo ""
+            echo "   The GitHub Pages build was deployed successfully and will serve"
+            echo "   your DEX once DNS is updated to point to xsunn3.github.io."
             {
-              echo "## 🚨 Action Required: Your Perp DEX is NOT visible at ${DOMAIN}"
+              echo "## ⚠️ DNS not pointing to GitHub Pages for ${DOMAIN}"
               echo ""
-              if [ "$CNAME_TARGET" = "orderlynetworkdexcreator.github.io" ]; then
-                echo "### Why can't you see your DEX?"
-                echo ""
-                echo "You forked your DEX from \`OrderlyNetworkDexCreator/virgos-0077\` to \`xsunn3/virgos-0077\`."
-                echo "Your fork has the correct settings (**broker_id=virgos**, **chain=Base/8453**)."
-                echo ""
-                echo "However, your DNS still points to the **original Orderly repo** (\`orderlynetworkdexcreator.github.io\`),"
-                echo "which has **broker_id=demo** and a non-existent chain (900900900) — visitors see a broken demo, not your DEX."
-                echo ""
-                echo "### ✅ The Fix (one DNS change at your registrar)"
-                echo ""
-              fi
-              echo "At your domain registrar (e.g. Namecheap, GoDaddy, Cloudflare), update this record:"
+              echo "Current DNS CNAME value: \`${CNAME_TARGET:-<not set>}\`"
               echo ""
-              echo "| Field | Current (wrong) | Change to |"
-              echo "|-------|-----------------|-----------|"
-              echo "| Type  | CNAME | CNAME |"
-              echo "| Name  | \`trade\` | \`trade\` |"
-              echo "| Value | \`${CNAME_TARGET:-<not set>}\` | **\`xsunn3.github.io\`** |"
-              echo "| TTL   | — | 3600 (or Automatic) |"
+              echo "The GitHub Pages build deployed successfully. To make ${DOMAIN} show your DEX, choose one option:"
               echo ""
-              echo "> After saving, DNS propagation takes up to 24 hours."
-              echo "> Once done, **https://${DOMAIN}** will serve your perp DEX (broker: virgos, chain: Base)."
+              echo "### Option A — Vercel (recommended if your DNS already points to Vercel)"
+              echo "1. Import [xsunn3/virgos-0077](https://github.com/xsunn3/virgos-0077) in [vercel.com/new](https://vercel.com/new)"
+              echo "2. Add \`trade.virgos.ai\` as a custom domain in Vercel project settings"
+              echo "3. Set DNS CNAME: \`trade → cname.vercel-dns.com\`"
+              echo ""
+              echo "### Option B — GitHub Pages"
+              echo "Set DNS CNAME at your registrar: \`trade → xsunn3.github.io\` — then re-run this workflow."
             } >> $GITHUB_STEP_SUMMARY
           fi
 
@@ -348,7 +343,7 @@ jobs:
           force: false
 
       - name: Configure custom domain and enforce HTTPS
-        if: steps.check-custom-domain.outputs.has_custom_domain == 'true'
+        if: steps.check-custom-domain.outputs.has_custom_domain == 'true' && steps.verify-dns.outputs.dns_ok == 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.TEMPLATE_PAT || github.token }}
