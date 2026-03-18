@@ -68,19 +68,15 @@ export default defineConfig(() => {
               "@solana/wallet-adapter-wallets",
               "@solana-mobile/wallet-adapter-mobile",
               "@privy-io/cross-app-connect",
-              "@orderly.network/wallet-connector",
-              "@orderly.network/wallet-connector-privy",
             ],
-            "orderly-ui": [
+            "orderly": [
               "@orderly.network/ui",
               "@orderly.network/ui-scaffold",
-            ],
-            "orderly-trading": [
+              "@orderly.network/wallet-connector",
+              "@orderly.network/wallet-connector-privy",
               "@orderly.network/trading",
               "@orderly.network/markets",
               "@orderly.network/portfolio",
-            ],
-            "orderly-misc": [
               "@orderly.network/react-app",
               "@orderly.network/affiliate",
               "@orderly.network/trading-leaderboard",
