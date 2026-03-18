@@ -33,7 +33,7 @@ export const LoadingSpinner = () => {
         }}
       >
         <img
-          src="/logo.webp"
+          src="/logo.svg"
           alt="Virgos"
           style={{ height: "52px", opacity: 0.92 }}
           onError={(e) => {
@@ -82,29 +82,23 @@ export const LoadingSpinner = () => {
       }}
     >
       <img
-        src="/logo.webp"
+        src="/logo.svg"
         alt="Virgos"
-        style={{ height: "52px", opacity: 0.92 }}
+        style={{
+          height: "52px",
+          animation: "virgos-pulse 1.8s ease-in-out infinite",
+        }}
         onError={(e) => {
           (e.target as HTMLImageElement).style.display = "none";
-        }}
-      />
-      <div
-        style={{
-          width: "40px",
-          height: "40px",
-          borderRadius: "50%",
-          border: "3px solid rgba(109, 92, 246, 0.18)",
-          borderTopColor: "rgb(109, 92, 246)",
-          animation: "virgos-spin 0.75s linear infinite",
         }}
       />
       <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
         Connecting to wallet providers…
       </div>
       <style>{`
-        @keyframes virgos-spin {
-          to { transform: rotate(360deg); }
+        @keyframes virgos-pulse {
+          0%, 100% { opacity: 0.7; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.04); }
         }
       `}</style>
     </div>
