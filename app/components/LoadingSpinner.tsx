@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 
 // How long to wait before showing a "taking too long" message.
 // Wallet provider SDKs (Privy, WalletConnect) can take several seconds
-// to initialize, but hanging beyond 20 s usually means a config issue
+// to initialize, but hanging beyond 12 s usually means a config issue
 // (e.g. domain not authorized in the Privy or WalletConnect dashboard).
-const LOADING_TIMEOUT_MS = 20000;
+const LOADING_TIMEOUT_MS = 12000;
 
 export const LoadingSpinner = () => {
   const [timedOut, setTimedOut] = useState(false);
@@ -99,6 +99,9 @@ export const LoadingSpinner = () => {
           animation: "virgos-spin 0.75s linear infinite",
         }}
       />
+      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
+        Connecting to wallet providers…
+      </div>
       <style>{`
         @keyframes virgos-spin {
           to { transform: rotate(360deg); }

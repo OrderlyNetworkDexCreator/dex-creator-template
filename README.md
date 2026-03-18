@@ -113,6 +113,30 @@ Vercel is the best option for this DEX. The repo already contains a ready `verce
 
 Edit `public/config.js`, commit, and push. Vercel will redeploy automatically (~60 seconds). All settings — broker ID, chain, logos, colors — are controlled through this single file.
 
+> **Note:** You do **not** need to set any environment variables in the Vercel dashboard. Everything is read from `public/config.js` at runtime.
+
+#### Step 4 — Whitelist your domain in Privy and WalletConnect ⚠️
+
+This is the most common cause of a **black / blank page** after a successful Vercel deployment. The favicon loads (the file is served) but the React app stays dark because the wallet provider SDKs refuse to initialize on an unlisted domain.
+
+**Privy**
+
+1. Go to [dashboard.privy.io](https://dashboard.privy.io) and open your app (App ID: the value of `VITE_PRIVY_APP_ID` in `public/config.js`)
+2. Navigate to **Settings → Allowed origins** (or **App settings → Domains**)
+3. Add `https://trade.virgos.ai` (your custom domain)
+4. Also add `https://<your-project>.vercel.app` for preview deployments
+5. Save and wait ~1 minute, then reload your site
+
+**WalletConnect**
+
+1. Go to [cloud.walletconnect.com](https://cloud.walletconnect.com) and open your project (Project ID: the value of `VITE_WALLETCONNECT_PROJECT_ID` in `public/config.js`)
+2. Navigate to **Explorer** or **Settings → Allowed Domains**
+3. Add `trade.virgos.ai` (no `https://` prefix needed here)
+4. Also add your `*.vercel.app` preview URL
+5. Save
+
+After completing both steps, reload `trade.virgos.ai` — the DEX should load fully.
+
 ---
 
 ### Alternative: Deploy to GitHub Pages
