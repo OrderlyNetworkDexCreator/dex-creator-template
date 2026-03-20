@@ -1,10 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { CSSProperties } from "react";
 import {
   useOrderEntry,
   useMarkPrice,
   useAccount,
-  useCollateral,
 } from "@orderly.network/hooks";
 import { OrderSide, OrderType, AccountStatusEnum } from "@orderly.network/types";
 
@@ -188,12 +187,30 @@ export function SimpleTradingPanel({ symbol, onConnectWallet }: Props) {
     kind: "ok" | "err";
     msg: string;
   } | null>(null);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear any pending feedback timer on unmount to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current !== null) {
+        clearTimeout(feedbackTimerRef.current);
+      }
+    };
+  }, []);
 
   const { data: markPrice } = useMarkPrice(symbol);
   const { state: accountState } = useAccount();
-  const { freeCollateral } = useCollateral();
 
-  const { setValue, submit, isMutating } = useOrderEntry(symbol, {
+  const {
+    setValues,
+    submit,
+    helper,
+    isMutating,
+    freeCollateral,
+    currentPosition,
+    maxQty,
+    symbolInfo,
+  } = useOrderEntry(symbol, {
     initialOrder: {
       order_type: OrderType.MARKET,
       side: OrderSide.BUY,
@@ -214,9 +231,31 @@ export function SimpleTradingPanel({ symbol, onConnectWallet }: Props) {
       ? amount / Math.abs(markPrice)
       : null;
 
+  // Min notional guard (Orderly requires minimum notional per symbol)
+  const minNotional = symbolInfo?.min_notional ?? 1;
+
   const showFeedback = useCallback((kind: "ok" | "err", msg: string) => {
+    // Clear any existing timer before setting a new one
+    if (feedbackTimerRef.current !== null) {
+      clearTimeout(feedbackTimerRef.current);
+    }
     setFeedback({ kind, msg });
-    setTimeout(() => setFeedback(null), 4000);
+    feedbackTimerRef.current = setTimeout(() => {
+      setFeedback(null);
+      feedbackTimerRef.current = null;
+    }, 5000);
+  }, []);
+
+  /** Extract a human-readable message from any thrown value */
+  const extractError = useCallback((e: unknown): string => {
+    if (e instanceof Error) {
+      // Orderly API errors often have a numeric code suffix like "(-1116) ..."
+      const m = e.message ?? "Order failed";
+      // Remove bracket-encoded codes, trim to 100 chars
+      return m.replace(/\(-?\d+\)\s*/g, "").trim().slice(0, 100);
+    }
+    if (typeof e === "string") return e.slice(0, 100);
+    return "Order failed — please try again";
   }, []);
 
   const handlePlace = useCallback(async () => {
@@ -225,35 +264,85 @@ export function SimpleTradingPanel({ symbol, onConnectWallet }: Props) {
       return;
     }
     if (!isEnabled) {
-      showFeedback("err", "Please connect & enable trading");
+      showFeedback("err", "Connect & enable trading first");
       return;
     }
     if (!amount || amount <= 0) {
       showFeedback("err", "Enter a valid amount");
       return;
     }
+    if (amount < Math.max(minNotional, 1)) {
+      const effectiveMinNotional = Math.max(minNotional, 1);
+      showFeedback("err", `Minimum order is $${effectiveMinNotional.toFixed(2)}`);
+      return;
+    }
+    if (freeCollateral <= 0) {
+      showFeedback("err", "No free collateral — deposit USDC first");
+      return;
+    }
+    if (amount > freeCollateral) {
+      showFeedback("err", `Amount exceeds free collateral ($${fmt(freeCollateral)})`);
+      return;
+    }
 
     const orderSide = side === "up" ? OrderSide.BUY : OrderSide.SELL;
-    setValue("side", orderSide);
-    setValue("order_type", OrderType.MARKET);
-    setValue("order_amount", amount);
+
+    // setValues updates the Zustand store synchronously, so validate() and
+    // submit() will immediately see the new side/type/amount values.
+    setValues({
+      side: orderSide,
+      order_type: OrderType.MARKET,
+      order_amount: amount,
+    });
+
+    // Pre-validate so we surface SDK errors with good messages
+    try {
+      const errors = await helper.validate();
+      if (errors) {
+        // Find the first error message across all fields
+        const firstError = Object.values(errors).find((v) => v?.message);
+        if (firstError?.message) {
+          showFeedback("err", firstError.message.slice(0, 100));
+          return;
+        }
+      }
+    } catch {
+      // Validation threw — continue to let submit() handle it
+    }
 
     try {
-      const res = await submit();
+      const res = await submit({ resetOnSuccess: true });
       if (res?.success) {
-        showFeedback("ok", `${side === "up" ? "Long" : "Short"} order placed ✓`);
+        showFeedback(
+          "ok",
+          `${side === "up" ? "Long ↑" : "Short ↓"} order placed successfully ✓`
+        );
         setSide(null);
         setRawAmount("10");
       } else {
-        showFeedback("err", "Order failed — try again");
+        showFeedback("err", "Order rejected by exchange — check your collateral");
       }
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Order failed — try again";
-      showFeedback("err", msg.slice(0, 80));
+      showFeedback("err", extractError(e));
     }
-  }, [side, isEnabled, amount, setValue, submit, showFeedback]);
+  }, [
+    side,
+    isEnabled,
+    amount,
+    minNotional,
+    freeCollateral,
+    setValues,
+    helper,
+    submit,
+    showFeedback,
+    extractError,
+  ]);
 
   const isActive = !!(side && isEnabled && !isMutating);
+  const hasPosition = currentPosition !== 0 && currentPosition != null;
+  const isLong = (currentPosition ?? 0) > 0;
+  const positionSide = isLong ? "Long ↑" : "Short ↓";
+  const positionAbs = currentPosition != null ? Math.abs(currentPosition) : 0;
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -269,6 +358,26 @@ export function SimpleTradingPanel({ symbol, onConnectWallet }: Props) {
             {markPrice ? `$${fmt(markPrice)}` : "—"}
           </div>
         </div>
+
+        {/* Open position indicator */}
+        {hasPosition && (
+          <div
+            style={{
+              padding: "8px 12px",
+              borderRadius: "8px",
+              fontSize: "12px",
+              fontWeight: 600,
+              background: isLong ? "rgba(34,197,94,0.10)" : "rgba(239,68,68,0.10)",
+              color: isLong ? T.up : T.down,
+              border: `1px solid ${isLong ? T.upDim : T.downDim}`,
+              display: "flex",
+              justifyContent: "space-between",
+            }}
+          >
+            <span>Open position</span>
+            <span>{positionSide} {fmt(positionAbs, 4)} {symbolBase}</span>
+          </div>
+        )}
 
         <div style={css.divider} />
 
@@ -337,6 +446,12 @@ export function SimpleTradingPanel({ symbol, onConnectWallet }: Props) {
               {freeCollateral > 0 ? `$${fmt(freeCollateral)}` : "—"}
             </span>
           </div>
+          {maxQty > 0 && (
+            <div style={css.infoRow}>
+              <span>Max qty</span>
+              <span style={css.infoVal}>{fmt(maxQty, 4)} {symbolBase}</span>
+            </div>
+          )}
         </div>
 
         {/* Feedback */}
