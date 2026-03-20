@@ -2,7 +2,6 @@
   "installCommand": "yarn install --frozen-lockfile",
   "buildCommand": "yarn build",
   "outputDirectory": "build/client",
-  "ignoreCommand": "exit 0",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
