@@ -6,6 +6,7 @@ import {
   useAccount,
 } from "@orderly.network/hooks";
 import { OrderSide, OrderType, AccountStatusEnum } from "@orderly.network/types";
+import { SimpleTradeHistory } from "@/components/SimpleTradeHistory";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 const T = {
@@ -178,9 +179,11 @@ const css: Record<string, CSSProperties> = {
 interface Props {
   symbol: string;
   onConnectWallet?: () => void;
+  onOpenAssetPicker?: () => void;
 }
 
-export function SimpleTradingPanel({ symbol, onConnectWallet }: Props) {
+export function SimpleTradingPanel({ symbol, onConnectWallet, onOpenAssetPicker }: Props) {
+  const [tab, setTab] = useState<"trade" | "history">("trade");
   const [side, setSide] = useState<"up" | "down" | null>(null);
   const [rawAmount, setRawAmount] = useState("10");
   const [feedback, setFeedback] = useState<{
@@ -231,8 +234,12 @@ export function SimpleTradingPanel({ symbol, onConnectWallet }: Props) {
       ? amount / Math.abs(markPrice)
       : null;
 
-  // Min notional guard (Orderly requires minimum notional per symbol)
-  const minNotional = symbolInfo?.min_notional ?? 1;
+  // Min notional guard (Orderly requires minimum notional per symbol).
+  // Fall back to 10 as a conservative default when symbolInfo is not yet loaded,
+  // which avoids accepting orders that would be rejected by the exchange.
+  const minNotional = symbolInfo?.min_notional ?? 10;
+  // Effective minimum is the larger of the per-symbol notional and $1 (safety floor).
+  const effectiveMinNotional = Math.max(minNotional, 1);
 
   const showFeedback = useCallback((kind: "ok" | "err", msg: string) => {
     // Clear any existing timer before setting a new one
@@ -271,8 +278,7 @@ export function SimpleTradingPanel({ symbol, onConnectWallet }: Props) {
       showFeedback("err", "Enter a valid amount");
       return;
     }
-    if (amount < Math.max(minNotional, 1)) {
-      const effectiveMinNotional = Math.max(minNotional, 1);
+    if (amount < effectiveMinNotional) {
       showFeedback("err", `Minimum order is $${effectiveMinNotional.toFixed(2)}`);
       return;
     }
@@ -329,7 +335,7 @@ export function SimpleTradingPanel({ symbol, onConnectWallet }: Props) {
     side,
     isEnabled,
     amount,
-    minNotional,
+    effectiveMinNotional,
     freeCollateral,
     setValues,
     helper,
@@ -347,142 +353,226 @@ export function SimpleTradingPanel({ symbol, onConnectWallet }: Props) {
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div style={css.root}>
-      <div style={css.inner}>
 
-        {/* Price header */}
-        <div style={{ ...css.section, gap: "4px" }}>
+      {/* ── Fixed header: asset name + change button ─────────────────────── */}
+      <div
+        style={{
+          padding: "14px 18px 12px",
+          borderBottom: `1px solid ${T.border}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexShrink: 0,
+        }}
+      >
+        {/* Left: symbol + mark price */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
           <div style={{ fontSize: "11px", color: T.muted, letterSpacing: "0.05em", textTransform: "uppercase" }}>
             {symbolBase} · Mark Price
           </div>
-          <div style={{ fontSize: "26px", fontWeight: 800, letterSpacing: "0.01em" }}>
+          <div style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "0.01em" }}>
             {markPrice ? `$${fmt(markPrice)}` : "—"}
           </div>
         </div>
 
-        {/* Open position indicator */}
-        {hasPosition && (
-          <div
+        {/* Right: change asset button */}
+        {onOpenAssetPicker && (
+          <button
+            onClick={onOpenAssetPicker}
             style={{
-              padding: "8px 12px",
+              background: "rgba(255,255,255,0.07)",
+              border: `1px solid ${T.border}`,
               borderRadius: "8px",
-              fontSize: "12px",
-              fontWeight: 600,
-              background: isLong ? "rgba(34,197,94,0.10)" : "rgba(239,68,68,0.10)",
-              color: isLong ? T.up : T.down,
-              border: `1px solid ${isLong ? T.upDim : T.downDim}`,
+              color: T.muted,
+              cursor: "pointer",
+              fontSize: "11px",
+              fontWeight: 700,
+              padding: "7px 11px",
+              letterSpacing: "0.04em",
               display: "flex",
-              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "4px",
+              transition: "background 0.15s, color 0.15s",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.12)";
+              (e.currentTarget as HTMLButtonElement).style.color = T.text;
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.07)";
+              (e.currentTarget as HTMLButtonElement).style.color = T.muted;
             }}
           >
-            <span>Open position</span>
-            <span>{positionSide} {fmt(positionAbs, 4)} {symbolBase}</span>
-          </div>
+            ⇄ Change
+          </button>
         )}
+      </div>
 
-        <div style={css.divider} />
+      {/* ── Tab bar ──────────────────────────────────────────────────────── */}
+      <div
+        style={{
+          display: "flex",
+          borderBottom: `1px solid ${T.border}`,
+          flexShrink: 0,
+        }}
+      >
+        {(["trade", "history"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            style={{
+              flex: 1,
+              padding: "10px 0",
+              background: "none",
+              border: "none",
+              borderBottom: tab === t ? `2px solid #fff` : "2px solid transparent",
+              cursor: "pointer",
+              fontSize: "11px",
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: tab === t ? T.text : T.muted,
+              transition: "color 0.15s, border-color 0.15s",
+              marginBottom: "-1px",
+            }}
+          >
+            {t === "trade" ? "Trade" : "History"}
+          </button>
+        ))}
+      </div>
 
-        {/* Direction */}
-        <div style={css.section}>
-          <div style={css.label}>Will the price go up or down?</div>
-          <div style={css.row}>
-            <button
-              style={dirBtnStyle(side === "up", T.up, T.upDim)}
-              onClick={() => setSide(side === "up" ? null : "up")}
+      {/* ── Tab content ──────────────────────────────────────────────────── */}
+      {tab === "history" ? (
+        <SimpleTradeHistory symbol={symbol} />
+      ) : (
+        <div style={css.inner}>
+
+          {/* Open position indicator */}
+          {hasPosition && (
+            <div
+              style={{
+                padding: "8px 12px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                fontWeight: 600,
+                background: isLong ? "rgba(34,197,94,0.10)" : "rgba(239,68,68,0.10)",
+                color: isLong ? T.up : T.down,
+                border: `1px solid ${isLong ? T.upDim : T.downDim}`,
+                display: "flex",
+                justifyContent: "space-between",
+              }}
             >
-              ↑ Up
-            </button>
-            <button
-              style={dirBtnStyle(side === "down", T.down, T.downDim)}
-              onClick={() => setSide(side === "down" ? null : "down")}
-            >
-              ↓ Down
-            </button>
-          </div>
-        </div>
-
-        {/* Amount */}
-        <div style={css.section}>
-          <div style={css.label}>Amount (USDC)</div>
-          <div style={css.amountWrap}>
-            <span style={css.currency}>$</span>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={rawAmount}
-              onChange={(e) => setRawAmount(e.target.value)}
-              style={css.input}
-              placeholder="0.00"
-            />
-          </div>
-          <div style={css.quickRow}>
-            {["10", "25", "50", "100"].map((v) => (
-              <button key={v} style={css.quickBtn} onClick={() => setRawAmount(v)}>
-                ${v}
-              </button>
-            ))}
-            {freeCollateral > 0 && (
-              <button
-                style={css.quickBtn}
-                onClick={() => setRawAmount(freeCollateral.toFixed(2))}
-              >
-                Max
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Info rows */}
-        <div style={css.section}>
-          <div style={css.infoRow}>
-            <span>Est. quantity</span>
-            <span style={css.infoVal}>
-              {estimatedQty != null ? `~${fmt(estimatedQty, 4)} ${symbolBase}` : "—"}
-            </span>
-          </div>
-          <div style={css.infoRow}>
-            <span>Free collateral</span>
-            <span style={css.infoVal}>
-              {freeCollateral > 0 ? `$${fmt(freeCollateral)}` : "—"}
-            </span>
-          </div>
-          {maxQty > 0 && (
-            <div style={css.infoRow}>
-              <span>Max qty</span>
-              <span style={css.infoVal}>{fmt(maxQty, 4)} {symbolBase}</span>
+              <span>Open position</span>
+              <span>{positionSide} {fmt(positionAbs, 4)} {symbolBase}</span>
             </div>
           )}
+
+          <div style={css.divider} />
+
+          {/* Direction */}
+          <div style={css.section}>
+            <div style={css.label}>Will the price go up or down?</div>
+            <div style={css.row}>
+              <button
+                style={dirBtnStyle(side === "up", T.up, T.upDim)}
+                onClick={() => setSide(side === "up" ? null : "up")}
+              >
+                ↑ Up
+              </button>
+              <button
+                style={dirBtnStyle(side === "down", T.down, T.downDim)}
+                onClick={() => setSide(side === "down" ? null : "down")}
+              >
+                ↓ Down
+              </button>
+            </div>
+          </div>
+
+          {/* Amount */}
+          <div style={css.section}>
+            <div style={css.label}>Amount (USDC)</div>
+            <div style={css.amountWrap}>
+              <span style={css.currency}>$</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={rawAmount}
+                onChange={(e) => setRawAmount(e.target.value)}
+                style={css.input}
+                placeholder="0.00"
+              />
+            </div>
+            <div style={css.quickRow}>
+              {["10", "25", "50", "100"].map((v) => (
+                <button key={v} style={css.quickBtn} onClick={() => setRawAmount(v)}>
+                  ${v}
+                </button>
+              ))}
+              {freeCollateral > 0 && (
+                <button
+                  style={css.quickBtn}
+                  onClick={() => setRawAmount(freeCollateral.toFixed(2))}
+                >
+                  Max
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Info rows */}
+          <div style={css.section}>
+            <div style={css.infoRow}>
+              <span>Est. quantity</span>
+              <span style={css.infoVal}>
+                {estimatedQty != null ? `~${fmt(estimatedQty, 4)} ${symbolBase}` : "—"}
+              </span>
+            </div>
+            <div style={css.infoRow}>
+              <span>Free collateral</span>
+              <span style={css.infoVal}>
+                {freeCollateral > 0 ? `$${fmt(freeCollateral)}` : "—"}
+              </span>
+            </div>
+            {maxQty > 0 && (
+              <div style={css.infoRow}>
+                <span>Max qty</span>
+                <span style={css.infoVal}>{fmt(maxQty, 4)} {symbolBase}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Feedback */}
+          {feedback && (
+            <div style={feedbackStyle(feedback.kind)}>{feedback.msg}</div>
+          )}
+
+          {/* Not connected prompt */}
+          {!isConnected && (
+            <div style={css.connectPrompt}>Connect your wallet to trade</div>
+          )}
+
+          {/* Place button */}
+          <button
+            style={placeBtnStyle(isActive, side, isMutating)}
+            onClick={isEnabled ? handlePlace : onConnectWallet}
+            disabled={isMutating}
+          >
+            {isMutating
+              ? "Placing…"
+              : !isConnected
+              ? "Connect Wallet"
+              : !isEnabled
+              ? "Enable Trading"
+              : side === "up"
+              ? "▲  Place Long"
+              : side === "down"
+              ? "▼  Place Short"
+              : "Select Direction"}
+          </button>
         </div>
-
-        {/* Feedback */}
-        {feedback && (
-          <div style={feedbackStyle(feedback.kind)}>{feedback.msg}</div>
-        )}
-
-        {/* Not connected prompt */}
-        {!isConnected && (
-          <div style={css.connectPrompt}>Connect your wallet to trade</div>
-        )}
-
-        {/* Place button */}
-        <button
-          style={placeBtnStyle(isActive, side, isMutating)}
-          onClick={isEnabled ? handlePlace : onConnectWallet}
-          disabled={isMutating}
-        >
-          {isMutating
-            ? "Placing…"
-            : !isConnected
-            ? "Connect Wallet"
-            : !isEnabled
-            ? "Enable Trading"
-            : side === "up"
-            ? "▲  Place Long"
-            : side === "down"
-            ? "▼  Place Short"
-            : "Select Direction"}
-        </button>
-      </div>
+      )}
     </div>
   );
 }
