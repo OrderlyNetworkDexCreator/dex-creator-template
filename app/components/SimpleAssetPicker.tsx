@@ -4,7 +4,7 @@ import { useMarkets } from "@orderly.network/hooks";
 import { MarketsType } from "@orderly.network/hooks";
 
 // ─── Asset icon with fallback letter-avatar ───────────────────────────────────
-function AssetIcon({ base }: { base: string }) {
+export function AssetIcon({ base, size = 28 }: { base: string; size?: number }) {
   const [errored, setErrored] = useState(false);
   // Pinned to a stable npm release of cryptocurrency-icons (0.18.1)
   const src = `https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/32/color/${base.toLowerCase()}.png`;
@@ -14,14 +14,14 @@ function AssetIcon({ base }: { base: string }) {
     return (
       <div
         style={{
-          width: 28,
-          height: 28,
+          width: size,
+          height: size,
           borderRadius: "50%",
           background: "rgba(255,255,255,0.12)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: "11px",
+          fontSize: Math.round(size * 0.39) + "px",
           fontWeight: 700,
           color: "rgba(255,255,255,0.7)",
           flexShrink: 0,
@@ -36,8 +36,8 @@ function AssetIcon({ base }: { base: string }) {
     <img
       src={src}
       alt={`${base} logo`}
-      width={28}
-      height={28}
+      width={size}
+      height={size}
       style={{ borderRadius: "50%", flexShrink: 0, objectFit: "cover" }}
       onError={() => setErrored(true)}
     />

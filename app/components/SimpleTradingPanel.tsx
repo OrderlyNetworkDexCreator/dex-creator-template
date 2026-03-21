@@ -4,9 +4,11 @@ import {
   useOrderEntry,
   useMarkPrice,
   useAccount,
+  useMaxLeverage,
 } from "@orderly.network/hooks";
 import { OrderSide, OrderType, AccountStatusEnum } from "@orderly.network/types";
 import { SimpleTradeHistory } from "@/components/SimpleTradeHistory";
+import { AssetIcon } from "@/components/SimpleAssetPicker";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 const T = {
@@ -203,6 +205,7 @@ export function SimpleTradingPanel({ symbol, onConnectWallet, onOpenAssetPicker 
 
   const { data: markPrice } = useMarkPrice(symbol);
   const { state: accountState } = useAccount();
+  const maxLeverage = useMaxLeverage(symbol);
 
   const {
     setValues,
@@ -365,10 +368,30 @@ export function SimpleTradingPanel({ symbol, onConnectWallet, onOpenAssetPicker 
           flexShrink: 0,
         }}
       >
-        {/* Left: symbol + mark price */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-          <div style={{ fontSize: "11px", color: T.muted, letterSpacing: "0.05em", textTransform: "uppercase" }}>
-            {symbolBase} · Mark Price
+        {/* Left: icon + symbol + leverage badge, then mark price */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <AssetIcon base={symbolBase} size={32} />
+            <span style={{ fontSize: "17px", fontWeight: 800, letterSpacing: "0.01em", color: T.text }}>
+              {symbolBase}
+            </span>
+            {maxLeverage > 0 && (
+              <span
+                style={{
+                  display: "inline-block",
+                  padding: "2px 7px",
+                  borderRadius: "6px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  background: "rgba(255,255,255,0.10)",
+                  color: T.muted,
+                  letterSpacing: "0.04em",
+                  alignSelf: "center",
+                }}
+              >
+                {maxLeverage}x
+              </span>
+            )}
           </div>
           <div style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "0.01em" }}>
             {markPrice ? `$${fmt(markPrice)}` : "—"}
