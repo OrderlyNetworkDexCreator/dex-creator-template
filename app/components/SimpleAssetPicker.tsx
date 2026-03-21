@@ -3,6 +3,47 @@ import type { CSSProperties } from "react";
 import { useMarkets } from "@orderly.network/hooks";
 import { MarketsType } from "@orderly.network/hooks";
 
+// ─── Asset icon with fallback letter-avatar ───────────────────────────────────
+function AssetIcon({ base }: { base: string }) {
+  const [errored, setErrored] = useState(false);
+  // Pinned to a stable npm release of cryptocurrency-icons (0.18.1)
+  const src = `https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/32/color/${base.toLowerCase()}.png`;
+
+  if (errored) {
+    // Fallback: colored circle with first letter
+    return (
+      <div
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.12)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "11px",
+          fontWeight: 700,
+          color: "rgba(255,255,255,0.7)",
+          flexShrink: 0,
+        }}
+      >
+        {base.charAt(0)}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={`${base} logo`}
+      width={28}
+      height={28}
+      style={{ borderRadius: "50%", flexShrink: 0, objectFit: "cover" }}
+      onError={() => setErrored(true)}
+    />
+  );
+}
+
 // ─── Theme (same tokens as SimpleTradingPanel) ────────────────────────────────
 const T = {
   bg: "rgb(0,0,0)",
@@ -161,8 +202,9 @@ export function SimpleAssetPicker({ open, currentSymbol, onSelect, onClose }: Pr
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
+            gridTemplateColumns: "28px 1fr 1fr 1fr",
             padding: "6px 18px",
+            gap: "8px",
             fontSize: "10px",
             fontWeight: 700,
             letterSpacing: "0.08em",
@@ -171,6 +213,7 @@ export function SimpleAssetPicker({ open, currentSymbol, onSelect, onClose }: Pr
             borderBottom: `1px solid ${T.border}`,
           }}
         >
+          <span />
           <span>Market</span>
           <span style={{ textAlign: "right" }}>Mark Price</span>
           <span style={{ textAlign: "right" }}>24h Change</span>
@@ -202,7 +245,8 @@ export function SimpleAssetPicker({ open, currentSymbol, onSelect, onClose }: Pr
                   onClick={() => handleSelect(m.symbol)}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "1fr 1fr 1fr",
+                    gridTemplateColumns: "28px 1fr 1fr 1fr",
+                    gap: "8px",
                     alignItems: "center",
                     width: "100%",
                     padding: "11px 18px",
@@ -222,6 +266,9 @@ export function SimpleAssetPicker({ open, currentSymbol, onSelect, onClose }: Pr
                       : "transparent")
                   }
                 >
+                  {/* Asset icon */}
+                  <AssetIcon base={base} />
+
                   {/* Symbol name */}
                   <span
                     style={{
@@ -253,18 +300,31 @@ export function SimpleAssetPicker({ open, currentSymbol, onSelect, onClose }: Pr
                     ${fmt(m.mark_price)}
                   </span>
 
-                  {/* 24h change */}
+                  {/* 24h change — colored pill */}
                   <span
                     style={{
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      color: changeColor,
-                      textAlign: "right",
-                      fontFamily: "Manrope, Inter, sans-serif",
+                      display: "flex",
+                      justifyContent: "flex-end",
                     }}
                   >
-                    {change >= 0 ? "+" : ""}
-                    {(change * 100).toFixed(2)}%
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "3px 7px",
+                        borderRadius: "6px",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        fontFamily: "Manrope, Inter, sans-serif",
+                        background: change >= 0
+                          ? "rgba(34,197,94,0.15)"
+                          : "rgba(239,68,68,0.15)",
+                        color: changeColor,
+                        letterSpacing: "0.02em",
+                      }}
+                    >
+                      {change >= 0 ? "+" : ""}
+                      {(change * 100).toFixed(2)}%
+                    </span>
                   </span>
                 </button>
               );
