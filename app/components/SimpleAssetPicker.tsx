@@ -1,7 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { CSSProperties } from "react";
-import { useMarkets } from "@orderly.network/hooks";
-import { MarketsType } from "@orderly.network/hooks";
+import { useMarkets, useSymbolsInfo, MarketsType } from "@orderly.network/hooks";
 
 // ─── Asset icon with fallback letter-avatar ───────────────────────────────────
 export function AssetIcon({ base, size = 28 }: { base: string; size?: number }) {
@@ -75,6 +73,7 @@ export function SimpleAssetPicker({ open, currentSymbol, onSelect, onClose }: Pr
   const searchRef = useRef<HTMLInputElement>(null);
 
   const [markets] = useMarkets(MarketsType.ALL);
+  const symbolsInfo = useSymbolsInfo();
 
   // Focus search input when modal opens
   useEffect(() => {
@@ -239,6 +238,11 @@ export function SimpleAssetPicker({ open, currentSymbol, onSelect, onClose }: Pr
               const isSelected = m.symbol === currentSymbol;
               const changeColor = change >= 0 ? T.up : T.down;
 
+              // Compute max leverage from base_imr via symbolsInfo
+              const symInfo = symbolsInfo?.[m.symbol];
+              const baseImr = symInfo ? (symInfo("base_imr") as number | undefined) : undefined;
+              const maxLeverage = baseImr && baseImr > 0 ? Math.round(1 / baseImr) : null;
+
               return (
                 <button
                   key={m.symbol}
@@ -269,7 +273,7 @@ export function SimpleAssetPicker({ open, currentSymbol, onSelect, onClose }: Pr
                   {/* Asset icon */}
                   <AssetIcon base={base} />
 
-                  {/* Symbol name */}
+                  {/* Symbol name + leverage badge */}
                   <span
                     style={{
                       fontSize: "13px",
@@ -284,7 +288,22 @@ export function SimpleAssetPicker({ open, currentSymbol, onSelect, onClose }: Pr
                     {isSelected && (
                       <span style={{ color: "#fff", fontSize: "10px" }}>●</span>
                     )}
-                    {base}-PERP
+                    {base}
+                    {maxLeverage != null && (
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          padding: "1px 5px",
+                          borderRadius: "4px",
+                          background: "rgba(255,255,255,0.10)",
+                          color: T.muted,
+                          letterSpacing: "0.03em",
+                        }}
+                      >
+                        {maxLeverage}x
+                      </span>
+                    )}
                   </span>
 
                   {/* Mark price */}
