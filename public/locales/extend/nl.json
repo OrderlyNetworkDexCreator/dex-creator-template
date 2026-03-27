@@ -4,5 +4,8 @@
   "extend.affiliate.description": "Verdien meer als een Orderly affiliate",
   "extend.staking": "Staking",
   "extend.staking.description": "ORDER/esORDER inzetten om VALOR te verwerven",
-  "extend.swap": "Ruilen"
+  "extend.swap": "Ruilen",
+  "extend.tradingPoints.points": "Punten",
+  "extend.tradingLeaderboard.leaderboard": "Ranglijst",
+  "extend.tradingLeaderboard.campaigns": "Campagnes"
 }

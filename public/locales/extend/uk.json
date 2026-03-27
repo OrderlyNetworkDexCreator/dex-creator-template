@@ -4,5 +4,8 @@
   "extend.affiliate.description": "Заробляйте більше як партнер Orderly",
   "extend.staking": "Стейкінг",
   "extend.staking.description": "Ставте ORDER/esORDER, щоб отримати VALOR",
-  "extend.swap": "Обмін"
+  "extend.swap": "Обмін",
+  "extend.tradingPoints.points": "Очки",
+  "extend.tradingLeaderboard.leaderboard": "Таблиця лідерів",
+  "extend.tradingLeaderboard.campaigns": "Кампанії"
 }

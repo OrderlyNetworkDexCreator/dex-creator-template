@@ -6,5 +6,8 @@
   "extend.affiliate.description": "Orderly 제휴 프로그램으로 더 많은 수익 창출",
   "extend.staking": "스테이킹",
   "extend.staking.description": "ORDER/esORDER 스테이킹으로 VALOR 획득",
-  "extend.swap": "스왑"
+  "extend.swap": "스왑",
+  "extend.tradingPoints.points": "포인트",
+  "extend.tradingLeaderboard.leaderboard": "리더보드",
+  "extend.tradingLeaderboard.campaigns": "캠페인"
 }
