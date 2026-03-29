@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { RouteOption } from "@orderly.network/ui-scaffold";
 import { getSymbol } from "@/utils/storage";
+import { RouteOption } from "@orderly.network/types";
 
 export function useNav() {
   const navigate = useNavigate();

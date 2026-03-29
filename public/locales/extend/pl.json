@@ -4,5 +4,8 @@
   "extend.affiliate.description": "Zarabiaj więcej jako partner Orderly",
   "extend.staking": "Staking",
   "extend.staking.description": "Stake ORDER/esORDER to acquire VALOR",
-  "extend.swap": "Wymiana"
+  "extend.swap": "Wymiana",
+  "extend.tradingPoints.points": "Punkty",
+  "extend.tradingLeaderboard.leaderboard": "Tabela wyników",
+  "extend.tradingLeaderboard.campaigns": "Kampanie"
 }

@@ -4,5 +4,8 @@
   "extend.affiliate.description": "Orderlyアフィリエイトでより多くを獲得",
   "extend.staking": "ステーキング",
   "extend.staking.description": "ORDER/esORDERをステーキングしてVALORを獲得",
-  "extend.swap": "スワップ"
+  "extend.swap": "スワップ",
+  "extend.tradingPoints.points": "ポイント",
+  "extend.tradingLeaderboard.leaderboard": "リーダーボード",
+  "extend.tradingLeaderboard.campaigns": "キャンペーン"
 }

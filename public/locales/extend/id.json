@@ -4,5 +4,8 @@
   "extend.affiliate.description": "Hasilkan lebih banyak sebagai afiliasi Tertib",
   "extend.staking": "Staking",
   "extend.staking.description": "Staking ORDER/esORDER untuk mendapatkan VALOR",
-  "extend.swap": "Tukar"
+  "extend.swap": "Tukar",
+  "extend.tradingPoints.points": "Poin",
+  "extend.tradingLeaderboard.leaderboard": "Papan peringkat",
+  "extend.tradingLeaderboard.campaigns": "Kampanye"
 }
