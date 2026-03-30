@@ -1,4 +1,5 @@
 import { getRuntimeConfig } from "@/utils/runtime-config";
+import { cn } from "@orderly.network/ui";
 import { SVGProps, useId } from "react";
 
 export function buildCampaignsUrl(): string {
@@ -12,7 +13,10 @@ export function CampaignsNavTitle({ title }: { title: string }) {
   return (
     <button
       type="button"
-      className="flex items-center gap-1"
+      className={cn(
+        "flex items-center gap-1 px-2 w-full h-8",
+        "rounded-md md:hover:bg-[rgb(var(--oui-color-base-7))]"
+      )}
       onClick={() => {
         window.open(buildCampaignsUrl(), "_blank", "noopener");
       }}
@@ -23,7 +27,7 @@ export function CampaignsNavTitle({ title }: { title: string }) {
       >
         <CampaignsFlameIcon className="size-5" />
       </span>
-      <span className="text-base-contrast text-sm">{title}</span>
+      <span className="text-base-contrast text-base md:text-sm">{title}</span>
       <span className="inline-flex size-[12px] shrink-0 items-center justify-center">
         <CampaignsExternalArrowIcon className="oui-text-base-contrast size-[6.5px]" />
       </span>
