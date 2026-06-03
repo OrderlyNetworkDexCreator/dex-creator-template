@@ -1,9 +1,17 @@
-node_modules
+# Node / package managers
+node_modules/
 
-/.cache
-/build
+# Vercel (never commit)
+.vercel/
+
+# Caches / build outputs
+/.cache/
+/build/
+
+# Local config / tooling
 .npmrc
 .specstory
-# SpecStory explanation file
 .specstory/.what-is-this.md
-/public/manifest.json
+
+# Keep tracked
+!/public/manifest.json
