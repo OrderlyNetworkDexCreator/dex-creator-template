@@ -92,3 +92,8 @@
   --oui-spacing-lg: 30rem;
   --oui-spacing-xl: 33.75rem;
 }
+
+/* Hide "Powered by" footer */
+.oui-scaffold-footer-powered-by {
+  display: none !important;
+}
