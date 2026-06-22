@@ -77,3 +77,8 @@ div[data-section-name='extendLeftTradingLine'] {
     --tv-color-platform-background: #16141c;
     --tv-color-pane-background: #16141c;
 }
+
+/* Hide "Powered by Orderly" and exchange title */
+[class*="titleWrapper-"][class*="exchangeTitle-"] {
+    display: none !important;
+}
